@@ -83,10 +83,10 @@ if ($needsReset) {
     Move-Item -Path $tempPath -Destination $propsPath -Force
 }
 
-$modConfigTemplate = Join-Path $PSScriptRoot "dev/charterlands-server.toml"
+$modConfigTemplate = Join-Path $PSScriptRoot "dev/lc_ftb_hook-server.toml"
 $modConfigTargets = @(
-    (Join-Path $RunDir "config/charterlands-server.toml"),
-    (Join-Path $RunDir "world/serverconfig/charterlands-server.toml")
+    (Join-Path $RunDir "config/lc_ftb_hook-server.toml"),
+    (Join-Path $RunDir "world/serverconfig/lc_ftb_hook-server.toml")
 )
 
 foreach ($configPath in $modConfigTargets) {

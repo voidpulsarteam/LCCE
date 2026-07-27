@@ -1,5 +1,7 @@
 package dev.voidpulsar.lc_claim_economy.service;
 
+import dev.ftb.mods.ftbchunks.api.Protection;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.IdentityHashMap;
@@ -13,10 +15,8 @@ public final class ChunkPermissionFlags {
     public static final int PVP = 1 << 3;
 
     public static final int ALL = BLOCK_EDIT | BLOCK_INTERACT | ENTITY_INTERACT | PVP;
-    private static final String FTB_PROTECTION_CLASS = "dev.ftb.mods.ftbchunks.api.Protection";
 
-    private static final Map<Object, Integer> FLAGS_BY_PROTECTION = new IdentityHashMap<>();
-    private static volatile Class<?> protectionClass;
+    private static final Map<Protection, Integer> FLAGS_BY_PROTECTION = new IdentityHashMap<>();
 
     static {
         register("EDIT_BLOCK", BLOCK_EDIT);
@@ -31,15 +31,11 @@ public final class ChunkPermissionFlags {
     }
 
     private static void register(String fieldName, int flags) {
-        Class<?> protectionType = protectionClass();
-        if (protectionType == null) {
-            return;
-        }
         try {
-            Field field = protectionType.getField(fieldName);
+            Field field = Protection.class.getField(fieldName);
             Object value = field.get(null);
-            if (value != null) {
-                FLAGS_BY_PROTECTION.put(value, flags);
+            if (value instanceof Protection protection) {
+                FLAGS_BY_PROTECTION.put(protection, flags);
             }
         } catch (Throwable ignored) {
         }
@@ -49,7 +45,7 @@ public final class ChunkPermissionFlags {
         return flags & ALL;
     }
 
-    public static int fromProtection(Object protection) {
+    public static int fromProtection(Protection protection) {
         if (protection == null) {
             return 0;
         }
@@ -95,14 +91,10 @@ public final class ChunkPermissionFlags {
         return 0;
     }
 
-    private static String resolveFieldName(Object protection) {
-        Class<?> protectionType = protectionClass();
-        if (protectionType == null) {
-            return null;
-        }
+    private static String resolveFieldName(Protection protection) {
         try {
-            for (Field field : protectionType.getFields()) {
-                if (field.getType() == protectionType && Modifier.isStatic(field.getModifiers())) {
+            for (Field field : Protection.class.getFields()) {
+                if (field.getType() == Protection.class && Modifier.isStatic(field.getModifiers())) {
                     Object value = field.get(null);
                     if (value == protection) {
                         return field.getName();
@@ -112,20 +104,5 @@ public final class ChunkPermissionFlags {
         } catch (Throwable ignored) {
         }
         return null;
-    }
-
-    private static Class<?> protectionClass() {
-        Class<?> cached = protectionClass;
-        if (cached != null) {
-            return cached;
-        }
-
-        try {
-            cached = Class.forName(FTB_PROTECTION_CLASS);
-            protectionClass = cached;
-            return cached;
-        } catch (ClassNotFoundException ignored) {
-            return null;
-        }
     }
 }

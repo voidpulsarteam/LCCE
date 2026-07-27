@@ -23,6 +23,7 @@ C:\Users\catbo\.gradle\caches\modules-2\files-2.1\commons-logging\commons-loggin
 C:\Users\catbo\.gradle\caches\modules-2\files-2.1\cpw.mods\bootstraplauncher\2.0.2\1a2d076cbc33b0520cbacd591224427b2a20047d\bootstraplauncher-2.0.2.jar
 C:\Users\catbo\.gradle\caches\modules-2\files-2.1\cpw.mods\modlauncher\11.0.5\b8f0d49294f733fdb6173931b263553e943dc950\modlauncher-11.0.5.jar
 C:\Users\catbo\.gradle\caches\modules-2\files-2.1\cpw.mods\securejarhandler\3.0.8\c0ef95cecd8699a0449053ac7d9c160748d902cd\securejarhandler-3.0.8.jar
+C:\Users\catbo\.gradle\caches\modules-2\files-2.1\curse.maven\ftb-chunks-x-xaeros-compat-1357724\8103626\6923ae95bdde32d8b504364ea125969cc7d6cb2e\ftb-chunks-x-xaeros-compat-1357724-8103626.jar
 C:\Users\catbo\.gradle\caches\modules-2\files-2.1\io.netty\netty-buffer\4.1.97.Final\f8f3d8644afa5e6e1a40a3a6aeb9d9aa970ecb4f\netty-buffer-4.1.97.Final.jar
 C:\Users\catbo\.gradle\caches\modules-2\files-2.1\io.netty\netty-codec\4.1.97.Final\384ba4d75670befbedb45c4d3b497a93639c206d\netty-codec-4.1.97.Final.jar
 C:\Users\catbo\.gradle\caches\modules-2\files-2.1\io.netty\netty-common\4.1.97.Final\7cceacaf11df8dc63f23d0fb58e9d4640fc88404\netty-common-4.1.97.Final.jar

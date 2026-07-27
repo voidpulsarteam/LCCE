@@ -2,6 +2,9 @@ package dev.voidpulsar.lc_claim_economy.network;
 
 import dev.voidpulsar.lc_claim_economy.LcClaimEconomy;
 import dev.voidpulsar.lc_claim_economy.client.ClientWarState;
+import dev.voidpulsar.lc_claim_economy.client.gui.WarScreen;
+import dev.voidpulsar.lc_claim_economy.client.PendingStateUiRefresh;
+import dev.ftb.mods.ftblibrary.util.client.ClientUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -83,6 +86,11 @@ public record SyncWarStatePayload(
     public static void handleClient(SyncWarStatePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             ClientWarState.update(payload);
+            if (ClientUtils.getCurrentGuiAs(WarScreen.class) != null) {
+                WarScreen.refreshIfOpen();
+            } else {
+                PendingStateUiRefresh.refreshOpenScreens();
+            }
         });
     }
 }

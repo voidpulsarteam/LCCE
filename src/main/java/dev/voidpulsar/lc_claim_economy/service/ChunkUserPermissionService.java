@@ -39,7 +39,7 @@ public final class ChunkUserPermissionService {
 
         ChunkDimPos pos;
         try {
-            pos = new ChunkDimPos(ChunkPosKey.toDimensionKey(chunkKey), ChunkPosKey.x(chunkKey), ChunkPosKey.z(chunkKey));
+            pos = ChunkPosKey.toChunkDimPos(chunkKey);
         } catch (RuntimeException ex) {
             PacketDistributor.sendToPlayer(player, SyncChunkUserPermsPayload.empty(chunkKey));
             return;
@@ -92,7 +92,7 @@ public final class ChunkUserPermissionService {
 
         ChunkDimPos pos;
         try {
-            pos = new ChunkDimPos(ChunkPosKey.toDimensionKey(chunkKey), ChunkPosKey.x(chunkKey), ChunkPosKey.z(chunkKey));
+            pos = ChunkPosKey.toChunkDimPos(chunkKey);
         } catch (RuntimeException ex) {
             actor.displayClientMessage(Component.translatable("message.lc_claim_economy.chunk_user_perm_invalid_chunk"), false);
             return;

@@ -22,7 +22,7 @@ public final class ClearWarsCommand {
 
     public static void register(RegisterCommandsEvent event) {
         event.getDispatcher().register(
-                Commands.literal(LcClaimEconomy.COMMAND_ROOT)
+                Commands.literal(LcClaimEconomy.MOD_ID)
                         .then(Commands.literal("clear_wars")
                                 .requires(src -> src.hasPermission(2))
                                 .executes(ClearWarsCommand::execute)));

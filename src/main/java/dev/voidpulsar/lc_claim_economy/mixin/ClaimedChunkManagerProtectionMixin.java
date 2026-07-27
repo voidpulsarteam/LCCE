@@ -3,11 +3,9 @@ package dev.voidpulsar.lc_claim_economy.mixin;
 import dev.ftb.mods.ftbchunks.api.ClaimedChunk;
 import dev.ftb.mods.ftbchunks.api.Protection;
 import dev.ftb.mods.ftblibrary.math.ChunkDimPos;
-import dev.voidpulsar.lc_claim_economy.service.ChunkPermissionFlags;
 import dev.voidpulsar.lc_claim_economy.service.ChunkUserPermissionService;
 import dev.voidpulsar.lc_claim_economy.service.LandChunkService;
 import dev.voidpulsar.lc_claim_economy.service.LandProtectionContext;
-import dev.voidpulsar.lc_claim_economy.town.TownService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -34,21 +32,9 @@ public abstract class ClaimedChunkManagerProtectionMixin {
             CallbackInfoReturnable<Boolean> cir
     ) {
         if (actor instanceof ServerPlayer player && player.level() != null) {
-            String chunkKey = dev.voidpulsar.lc_claim_economy.data.ChunkPosKey.encode(player.level().dimension().location(), pos.getX() >> 4, pos.getZ() >> 4);
             ClaimedChunk chunk = ((dev.ftb.mods.ftbchunks.api.ClaimedChunkManager) this)
                     .getChunk(new ChunkDimPos(player.level(), pos));
             LandProtectionContext.set(chunk != null && LandChunkService.isLandChunk(chunk));
-            if (TownService.ownerOf(player.server, chunkKey) != null) {
-                boolean allowed = TownService.canInteract(
-                    player.server,
-                    player,
-                    chunkKey,
-                    ChunkPermissionFlags.fromProtection(protection)
-                );
-                LandProtectionContext.clear();
-                cir.setReturnValue(!allowed);
-                return;
-            }
             if (ChunkUserPermissionService.isExplicitlyAllowed(player, chunk, protection)) {
                 LandProtectionContext.clear();
                 cir.setReturnValue(false);

@@ -1,13 +1,12 @@
 package dev.voidpulsar.lc_claim_economy.network;
 
 import dev.voidpulsar.lc_claim_economy.LcClaimEconomy;
-import dev.voidpulsar.lc_claim_economy.compat.ModCompat;
+import dev.voidpulsar.lc_claim_economy.service.LandChunkService;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record RequestLandChunksPayload() implements CustomPacketPayload {
@@ -23,21 +22,8 @@ public record RequestLandChunksPayload() implements CustomPacketPayload {
 
     public static void handleServer(RequestLandChunksPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
-            if (!(context.player() instanceof ServerPlayer player)) {
-                return;
-            }
-
-            if (!ModCompat.isFtbAvailable()) {
-                PacketDistributor.sendToPlayer(player, new SyncLandChunksPayload(java.util.Set.of()));
-                return;
-            }
-
-            try {
-                Class<?> serviceClass = Class.forName("dev.voidpulsar.lc_claim_economy.service.LandChunkService");
-                serviceClass.getMethod("syncToPlayer", ServerPlayer.class).invoke(null, player);
-            } catch (ReflectiveOperationException error) {
-                LcClaimEconomy.LOGGER.warn("Failed to sync land chunks for {}", player.getGameProfile().getName(), error);
-                PacketDistributor.sendToPlayer(player, new SyncLandChunksPayload(java.util.Set.of()));
+            if (context.player() instanceof ServerPlayer player) {
+                LandChunkService.syncToPlayer(player);
             }
         });
     }

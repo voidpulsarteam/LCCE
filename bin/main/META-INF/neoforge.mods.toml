@@ -5,9 +5,9 @@ license="All Rights Reserved"
 [[mods]]
 modId="lc_claim_economy"
 version="3.8.0"
-displayName="Charterlands"
+displayName="Lightman's Currency: Claim Economy"
 authors="malik"
-description='''Connects Lightman's Currency with Charterlands' native town and claim systems, with optional compatibility hooks for legacy FTB-based worlds.'''
+description='''Connects Lightman's Currency with FTB Chunks + FTB Teams, or Open Parties and Claims, for paid claims, upkeep, and protection management.'''
 
 [[dependencies.lc_claim_economy]]
 modId="neoforge"
@@ -41,6 +41,13 @@ side="BOTH"
 modId="ftbchunks"
 type="optional"
 versionRange="[2101.1.20,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.lc_claim_economy]]
+modId="openpartiesandclaims"
+type="optional"
+versionRange="[0.27.5,)"
 ordering="NONE"
 side="BOTH"
 

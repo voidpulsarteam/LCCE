@@ -16,6 +16,13 @@
     "RequestChunkChangePacketMixin"
   ],
     "client": [
+    "client.ChunkScreenPanelAccessor",
+    "ChunkScreenCustomBottomPanelMixin",
+    "ChunkScreenMixin",
+    "client.ChunkScreenClaimInfoButtonMixin",
+    "ChunkScreenPanelMixin",
+    "client.ChunkChangeResponsePacketClientMixin",
+    "client.ChunkScreenPanelChunkButtonMixin",
     "client.ConfigGroupAccessor",
     "client.EditConfigScreenAccessor",
     "client.EditConfigScreenConfigEntryButtonMixin",
@@ -24,7 +31,7 @@
     "client.EditConfigScreenParentTopPanelMixin",
     "client.MyTeamScreenMixin",
     "client.MyTeamScreenSettingsButtonMixin",
-        "client.InventoryScreenTownButtonMixin"
+    "client.RenderMapImageTaskLandTintMixin"
   ],
   "injectors": {
     "defaultRequire": 1

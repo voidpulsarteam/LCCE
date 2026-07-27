@@ -1,5 +1,8 @@
 package dev.voidpulsar.lc_claim_economy.data;
 
+import dev.ftb.mods.ftblibrary.math.ChunkDimPos;
+import dev.ftb.mods.ftblibrary.math.XZ;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -11,24 +14,12 @@ public final class ChunkPosKey {
     private ChunkPosKey() {
     }
 
-    /**
-     * Best-effort encoder for foreign chunk position objects (e.g. FTB
-     * ChunkDimPos) without hard-linking to their classes.
-     */
-    public static String encode(Object foreignPos) {
-        if (foreignPos == null) {
-            throw new IllegalArgumentException("Chunk position object is null");
-        }
+    public static String encode(ResourceKey<Level> dimension, XZ pos) {
+        return encode(dimension.location(), pos.x(), pos.z());
+    }
 
-        try {
-            Object dimensionObj = foreignPos.getClass().getMethod("dimension").invoke(foreignPos);
-            Object locationObj = dimensionObj.getClass().getMethod("location").invoke(dimensionObj);
-            int x = ((Number) foreignPos.getClass().getMethod("x").invoke(foreignPos)).intValue();
-            int z = ((Number) foreignPos.getClass().getMethod("z").invoke(foreignPos)).intValue();
-            return encode((ResourceLocation) locationObj, x, z);
-        } catch (ReflectiveOperationException | ClassCastException error) {
-            throw new IllegalArgumentException("Unsupported chunk position object: " + foreignPos.getClass().getName(), error);
-        }
+    public static String encode(ChunkDimPos pos) {
+        return encode(pos.dimension().location(), pos.x(), pos.z());
     }
 
     public static String encode(ResourceLocation dimension, int x, int z) {
@@ -50,7 +41,9 @@ public final class ChunkPosKey {
         return Integer.parseInt(key.substring(second + 1));
     }
 
-    public static ResourceKey<Level> toDimensionKey(String key) {
-        return ResourceKey.create(Registries.DIMENSION, dimension(key));
+    public static ChunkDimPos toChunkDimPos(String key) {
+        ResourceLocation dimensionId = dimension(key);
+        ResourceKey<Level> dimension = ResourceKey.create(Registries.DIMENSION, dimensionId);
+        return new ChunkDimPos(dimension, x(key), z(key));
     }
 }

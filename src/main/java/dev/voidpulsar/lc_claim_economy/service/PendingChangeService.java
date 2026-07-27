@@ -3,7 +3,6 @@ package dev.voidpulsar.lc_claim_economy.service;
 import dev.ftb.mods.ftbchunks.api.ChunkTeamData;
 import dev.ftb.mods.ftbchunks.api.ClaimedChunk;
 import dev.ftb.mods.ftbchunks.api.FTBChunksAPI;
-import dev.ftb.mods.ftblibrary.math.ChunkDimPos;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.voidpulsar.lc_claim_economy.LcClaimEconomy;
@@ -93,15 +92,11 @@ public final class PendingChangeService {
         CommandSourceStack source = server.createCommandSourceStack();
 
         for (String chunkKey : pendingState.pendingForceUnloads()) {
-            chunkData.unForceLoad(source, toChunkDimPos(chunkKey), false);
+            chunkData.unForceLoad(source, ChunkPosKey.toChunkDimPos(chunkKey), false);
         }
         for (String chunkKey : pendingState.pendingForceLoads()) {
-            chunkData.forceLoad(source, toChunkDimPos(chunkKey), false);
+            chunkData.forceLoad(source, ChunkPosKey.toChunkDimPos(chunkKey), false);
         }
-    }
-
-    private static ChunkDimPos toChunkDimPos(String chunkKey) {
-        return new ChunkDimPos(ChunkPosKey.toDimensionKey(chunkKey), ChunkPosKey.x(chunkKey), ChunkPosKey.z(chunkKey));
     }
 
     private static void applyPendingWars(MinecraftServer server, Team team, TeamPendingState pendingState) {

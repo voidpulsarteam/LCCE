@@ -117,7 +117,7 @@ Enabling force-load on a chunk is free, but each force-loaded chunk adds a perio
 
 The config file is generated at:
 ```
-world/serverconfig/charterlands-server.toml
+world/serverconfig/lc_claim_economy-server.toml
 ```
 
 Reload it by restarting the server or using `/reload` (some values apply immediately).
@@ -252,4 +252,4 @@ A: All claimed chunks are unclaimed (with the configured refund), the remaining 
 A: Yes. Set `warEnabled = false` in the server config. The war button disappears from the client UI automatically.
 
 **Q: Where is the config file?**  
-A: `world/serverconfig/charterlands-server.toml` on a dedicated server, or `saves/<world>/serverconfig/charterlands-server.toml` in single-player.
+A: `world/serverconfig/lc_claim_economy-server.toml` on a dedicated server, or `saves/<world>/serverconfig/lc_claim_economy-server.toml` in single-player.
