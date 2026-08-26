@@ -27,11 +27,12 @@ import java.util.stream.Stream;
  * than an FTB team ID. FTB and OP&C party UUIDs share no meaningful
  * relationship, so collisions are not a practical concern.
  * <p>
- * This is a first pass covering bank account creation and owner/admin/member
- * role sync only - it does not yet cover the land/build chunk split,
- * protection upkeep, or war features that the FTB integration has, since
- * those map onto OP&C's very different (per-player-config) protection model
- * and need their own design pass.
+ * Covers bank account creation and owner/admin/member role sync; periodic
+ * protection (force-load + land/build) upkeep billing against the linked
+ * LC team account is handled separately by
+ * {@code dev.voidpulsar.lc_claim_economy.opc.OpcUpkeepService}. OP&C
+ * parties never participate in wars - out of scope by design, not just
+ * missing.
  */
 public final class OpcPartySyncService {
     private static final ConcurrentHashMap<UUID, Object> LINK_LOCKS = new ConcurrentHashMap<>();

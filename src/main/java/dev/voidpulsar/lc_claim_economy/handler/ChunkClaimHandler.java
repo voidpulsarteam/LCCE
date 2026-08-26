@@ -1,5 +1,6 @@
 package dev.voidpulsar.lc_claim_economy.handler;
 
+import dev.ftb.mods.ftbchunks.api.ChunkTeamData;
 import dev.ftb.mods.ftbchunks.api.ClaimResult;
 import dev.ftb.mods.ftbchunks.api.ClaimedChunk;
 import dev.ftb.mods.ftbchunks.api.FTBChunksAPI;
@@ -11,6 +12,8 @@ import dev.voidpulsar.lc_claim_economy.bank.ClaimBatchContext;
 import dev.voidpulsar.lc_claim_economy.bank.InsufficientFundsClaimResult;
 import dev.voidpulsar.lc_claim_economy.config.LcClaimEconomyConfig;
 import dev.voidpulsar.lc_claim_economy.LcClaimEconomy;
+import dev.voidpulsar.lc_claim_economy.data.LcClaimEconomySavedData;
+import dev.voidpulsar.lc_claim_economy.integration.quest.QuestAdvancements;
 import dev.voidpulsar.lc_claim_economy.service.ClaimPriceSync;
 import dev.voidpulsar.lc_claim_economy.service.FreeChunkAllowance;
 import dev.voidpulsar.lc_claim_economy.util.MoneyMessageUtil;
@@ -34,8 +37,12 @@ public class ChunkClaimHandler {
     }
 
     private void afterClaim(CommandSourceStack source, ClaimedChunk chunk) {
+        int totalClaimed = liveClaimedChunkCount(chunk);
+        grantClaimMilestoneAdvancement(source, totalClaimed);
+        grantPioneerBonusIfFirstEverClaim(source);
+
         if (ClaimBatchContext.isExecuting()) {
-            int countBeforeClaim = chunk.getTeamData().getClaimedChunks().size() - 1;
+            int countBeforeClaim = totalClaimed - 1;
             if (FreeChunkAllowance.isClaimFree(countBeforeClaim)) {
                 ClaimBatchContext.recordClaimFree();
             }
@@ -44,8 +51,57 @@ public class ChunkClaimHandler {
         syncClaimUi(source);
     }
 
+    /**
+     * A one-time, server-wide bonus (see {@code pioneerBonusAmount} config)
+     * for whoever claims the very first chunk ever claimed on this server -
+     * gated by {@link LcClaimEconomySavedData#claimPioneerBonus()}, which
+     * only returns true once, ever.
+     */
+    private void grantPioneerBonusIfFirstEverClaim(CommandSourceStack source) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            return;
+        }
+        MinecraftServer server = source.getServer();
+        if (!LcClaimEconomySavedData.get(server).claimPioneerBonus()) {
+            return;
+        }
+
+        QuestAdvancements.grant(player, QuestAdvancements.pioneer());
+
+        long bonusCopper = LcClaimEconomyConfig.SERVER.pioneerBonusAmount.get();
+        if (bonusCopper <= 0) {
+            return;
+        }
+        MoneyValue bonus = MoneyUtil.fromCopper(bonusCopper);
+        IBankAccount account = BankAccountHelper.getAccountForPlayer(server, player);
+        account.depositMoney(bonus);
+        LcClaimEconomySavedData.get(server).recordLedger(
+                BankAccountHelper.ledgerKeyForPlayer(player), LcClaimEconomySavedData.LedgerKind.PIONEER_BONUS, bonusCopper, "message.lc_claim_economy.ledger.pioneer_bonus");
+
+        Component announcement = Component.translatable("message.lc_claim_economy.pioneer_bonus.announcement",
+                player.getDisplayName(), MoneyMessageUtil.formatValue(bonus));
+        server.getPlayerList().broadcastSystemMessage(announcement, false);
+    }
+
+    private void grantClaimMilestoneAdvancement(CommandSourceStack source, int totalClaimed) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            return;
+        }
+        for (int milestone : QuestAdvancements.CLAIM_MILESTONES) {
+            if (totalClaimed == milestone) {
+                QuestAdvancements.grant(player, QuestAdvancements.claimedChunks(milestone));
+                break;
+            }
+        }
+    }
+
     private CompoundEventResult<ClaimResult> beforeClaim(CommandSourceStack source, ClaimedChunk chunk) {
-        int currentCount = chunk.getTeamData().getClaimedChunks().size();
+        if (ClaimBatchContext.isEconomySuppressed()) {
+            return CompoundEventResult.pass();
+        }
+        int currentCount = liveClaimedChunkCount(chunk);
         if (FreeChunkAllowance.isClaimFree(currentCount)) {
             return CompoundEventResult.pass();
         }
@@ -96,6 +152,12 @@ public class ChunkClaimHandler {
             account = BankAccountHelper.getAccountForTeam(server, team);
         }
         account.depositMoney(refund);
+        LcClaimEconomySavedData savedData = LcClaimEconomySavedData.get(server);
+        savedData.recordUnclaimRefund(refundAmount);
+        if (!ClaimBatchContext.isExecuting()) {
+            UUID ledgerKey = personalRefundPlayer != null ? personalRefundPlayer : team.getId();
+            savedData.recordLedger(ledgerKey, LcClaimEconomySavedData.LedgerKind.UNCLAIM_REFUND, refundAmount, "message.lc_claim_economy.ledger.unclaim_refund");
+        }
 
         ServerPlayer player = source.getPlayer();
         if (player != null) {
@@ -119,7 +181,10 @@ public class ChunkClaimHandler {
     }
 
     private long calculateUnclaimRefund(ClaimedChunk chunk) {
-        int countBeforeUnclaim = chunk.getTeamData().getClaimedChunks().size() + 1;
+        if (ClaimBatchContext.isEconomySuppressed()) {
+            return 0L;
+        }
+        int countBeforeUnclaim = liveClaimedChunkCount(chunk) + 1;
         if (!FreeChunkAllowance.shouldRefundOnUnclaim(countBeforeUnclaim)) {
             return 0L;
         }
@@ -131,6 +196,37 @@ public class ChunkClaimHandler {
         }
 
         return (long) Math.floor(claimPrice * refundRatio);
+    }
+
+    /**
+     * {@code ChunkTeamData#getClaimedChunks()} lazily caches its result and
+     * is only invalidated by FTB Chunks' own {@code clearClaimCaches()} -
+     * which, for unclaim, runs *after* {@code AFTER_UNCLAIM} fires. Reading
+     * it from inside an AFTER_CLAIM/AFTER_UNCLAIM listener can therefore
+     * return a stale, pre-mutation count (still counting a chunk that was
+     * just removed, or missing one that was just added). The manager's
+     * {@link FTBChunksAPI#api()}{@code .getManager().getAllClaimedChunks()}
+     * has no such cache - {@code registerClaim}/{@code unregisterClaim}
+     * mutate its backing map directly - so filter that instead to get the
+     * true current count for this chunk's team.
+     */
+    private static int liveClaimedChunkCount(ClaimedChunk chunk) {
+        ChunkTeamData teamData = chunk.getTeamData();
+        Team team = teamData.getTeam();
+        if (team == null) {
+            // Callers that care (afterUnclaim) re-check this and bail out
+            // before acting on the count; avoid an NPE here so they can.
+            return 0;
+        }
+        UUID teamId = team.getId();
+        int count = 0;
+        for (ClaimedChunk other : FTBChunksAPI.api().getManager().getAllClaimedChunks()) {
+            Team otherTeam = other.getTeamData().getTeam();
+            if (otherTeam != null && otherTeam.getId().equals(teamId)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private void syncClaimUi(CommandSourceStack source) {
@@ -181,9 +277,12 @@ public class ChunkClaimHandler {
         }
 
         account.withdrawMoney(price);
+        LcClaimEconomySavedData savedData = LcClaimEconomySavedData.get(player.server);
+        savedData.recordClaimPurchase(priceAmount);
         if (ClaimBatchContext.isExecuting()) {
             ClaimBatchContext.recordClaimSpend(priceAmount);
         } else {
+            savedData.recordLedger(team.getId(), LcClaimEconomySavedData.LedgerKind.CLAIM_PURCHASE, -priceAmount, "message.lc_claim_economy.ledger.claim_purchase");
             ServerPlayer payingPlayer = source.getPlayer();
             if (payingPlayer != null) {
                 payingPlayer.displayClientMessage(

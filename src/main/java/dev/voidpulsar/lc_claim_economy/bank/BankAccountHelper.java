@@ -78,6 +78,20 @@ public final class BankAccountHelper {
         LcTeamSyncService.ensureLinked(server, team);
     }
 
+    /**
+     * The identity key that {@link #getAccountForPlayer} actually deposits
+     * into for this player: their party's team ID if they're in one,
+     * otherwise their own UUID (which is also what FTB Teams uses as the ID
+     * of a player's personal team). Used to key ledger entries so a
+     * player's History tab reads from the same account their money lives
+     * in.
+     */
+    public static UUID ledgerKeyForPlayer(ServerPlayer player) {
+        return FTBTeamsAPI.api().getManager().getTeamForPlayer(player)
+                .map(Team::getId)
+                .orElse(player.getUUID());
+    }
+
     public static TeamManager teamManager() {
         return FTBTeamsAPI.api().getManager();
     }

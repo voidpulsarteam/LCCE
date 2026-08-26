@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claim Economy Leaderboard</title>
+<style>
+  :root {
+    --bg: #2E3440;
+    --panel: #3B4252;
+    --panel-alt: #434C5E;
+    --border: #4C566A;
+    --text: #ECEFF4;
+    --text-muted: #D8DEE9;
+    --text-dim: #7B88A1;
+    --accent: #88C0D0;
+    --accent-2: #A3BE8C;
+    --gold: #EBCB8B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 48px;
+  }
+  header {
+    max-width: 960px;
+    margin: 0 auto 24px;
+    text-align: center;
+  }
+  header h1 {
+    margin: 0 0 4px;
+    font-size: 1.8em;
+    letter-spacing: 0.02em;
+  }
+  header p {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 0.9em;
+  }
+  #status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  #status-dot.stale { background: #BF616A; }
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .info-panel {
+    grid-column: 1 / -1;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 1.1em;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px 20px;
+  }
+  .info-item .label {
+    font-size: 0.75em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .info-item .value {
+    font-size: 1.05em;
+    color: var(--text-muted);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92em;
+  }
+  th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  th.num, td.num { text-align: right; }
+  td {
+    padding: 6px 6px;
+    border-bottom: 1px solid var(--panel-alt);
+  }
+  tr:last-child td { border-bottom: none; }
+  .rank {
+    color: var(--text-dim);
+    width: 1.6em;
+  }
+  .rank.gold { color: var(--gold); }
+  .name {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .empty-row td {
+    color: var(--text-dim);
+    font-style: italic;
+    text-align: center;
+    padding: 16px 6px;
+  }
+  footer {
+    max-width: 960px;
+    margin: 24px auto 0;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.78em;
+  }
+  @media (max-width: 700px) {
+    main { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Claim Economy</h1>
+  <p><span id="status-dot"></span><span id="status-text">Connecting...</span></p>
+</header>
+<main>
+  <section class="card info-panel">
+    <h2>Server Info</h2>
+    <div class="info-grid" id="info-grid"></div>
+  </section>
+
+  <section class="card info-panel">
+    <h2>Economy Activity <span style="font-weight:400; font-size:0.7em; color:var(--text-dim);">(all-time totals)</span></h2>
+    <div class="info-grid" id="stats-grid"></div>
+  </section>
+
+  <section class="card">
+    <h2>Richest</h2>
+    <table>
+      <thead><tr><th class="rank"></th><th>Name</th><th class="num">Balance</th></tr></thead>
+      <tbody id="board-balance"></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Most Claimed</h2>
+    <table>
+      <thead><tr><th class="rank"></th><th>Name</th><th class="num">Chunks</th></tr></thead>
+      <tbody id="board-claims"></tbody>
+    </table>
+  </section>
+</main>
+<footer>Auto-refreshes every 10 seconds &middot; Lightman's Currency Claim Economy</footer>
+
+<script>
+const REFRESH_MS = 10000;
+const COIN_NAMES = ["Copper", "Iron", "Gold", "Emerald", "Diamond", "Netherite"];
+const COIN_STEP = 10;
+
+function formatCopper(amount) {
+  if (amount <= 0) return "0c";
+  let parts = [];
+  let remaining = amount;
+  for (let i = COIN_NAMES.length - 1; i >= 0; i--) {
+    const unit = Math.pow(COIN_STEP, i);
+    const count = Math.floor(remaining / unit);
+    if (count > 0) {
+      parts.push(count + " " + COIN_NAMES[i][0]);
+      remaining -= count * unit;
+    }
+  }
+  return parts.length ? parts.join(" ") : amount + "c";
+}
+
+function formatMinutes(minutes) {
+  if (!minutes || minutes <= 0) return "?";
+  if (minutes % 1440 === 0) return (minutes / 1440) + "d";
+  if (minutes % 60 === 0) return (minutes / 60) + "h";
+  return minutes + "m";
+}
+
+function rankClass(i) {
+  return i === 0 ? "rank gold" : "rank";
+}
+
+function renderInfo(data) {
+  const grid = document.getElementById("info-grid");
+  const items = [
+    ["Backend", data.backend],
+    ["Claim price", formatCopper(data.claimPrice)],
+    ["Free chunks", data.freeChunks],
+    ["Land chunk group size", data.landChunkGroupSize],
+    ["Upkeep period", formatMinutes(data.upkeepPeriodMinutes)],
+    ["Force-load price", formatCopper(data.forceLoadUpkeepPrice) + " / period"],
+    ["Wars", data.warEnabled ? "Enabled" : "Disabled"],
+    ["Tracked accounts", data.trackedAccounts],
+    ["Players online", data.onlinePlayers],
+    ["Mob-grief protection", formatCopper(data.protectionPrices.mobGriefing)],
+    ["Explosion protection", formatCopper(data.protectionPrices.explosions)],
+    ["PvP protection", formatCopper(data.protectionPrices.pvp)],
+    ["Block interact protection", formatCopper(data.protectionPrices.blockInteract)],
+    ["Block edit protection", formatCopper(data.protectionPrices.blockEdit)],
+    ["Entity interact protection", formatCopper(data.protectionPrices.entityInteract)]
+  ];
+  grid.innerHTML = items.map(([label, value]) =>
+    `<div class="info-item"><div class="label">${escapeHtml(String(label))}</div><div class="value">${escapeHtml(String(value))}</div></div>`
+  ).join("");
+}
+
+function renderStats(data) {
+  const grid = document.getElementById("stats-grid");
+  const stats = data.economyStats || {};
+  const items = [
+    ["Upkeep charged", formatCopper(stats.upkeepChargedCopper) + " (" + (stats.upkeepChargedCount || 0) + " payments)"],
+    ["Upkeep missed", (stats.upkeepMissedCount || 0) + " times"],
+    ["Spent claiming chunks", formatCopper(stats.claimSpendCopper) + " (" + (stats.claimCount || 0) + " chunks)"],
+    ["Refunded unclaiming chunks", formatCopper(stats.unclaimRefundCopper) + " (" + (stats.unclaimCount || 0) + " chunks)"],
+    ["Market sales volume", formatCopper(stats.marketVolumeCopper) + " (" + (stats.marketSaleCount || 0) + " chunks sold)"]
+  ];
+  grid.innerHTML = items.map(([label, value]) =>
+    `<div class="info-item"><div class="label">${escapeHtml(String(label))}</div><div class="value">${escapeHtml(String(value))}</div></div>`
+  ).join("");
+}
+
+function renderBoard(elementId, entries, valueFormatter) {
+  const body = document.getElementById(elementId);
+  if (!entries || entries.length === 0) {
+    body.innerHTML = `<tr class="empty-row"><td colspan="3">No data yet</td></tr>`;
+    return;
+  }
+  body.innerHTML = entries.map((entry, i) =>
+    `<tr>
+      <td class="${rankClass(i)}">${i + 1}</td>
+      <td class="name">${escapeHtml(entry.name)}</td>
+      <td class="num">${escapeHtml(valueFormatter(entry))}</td>
+    </tr>`
+  ).join("");
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function setStatus(ok) {
+  const dot = document.getElementById("status-dot");
+  const text = document.getElementById("status-text");
+  if (ok) {
+    dot.classList.remove("stale");
+    text.textContent = "Live - last updated " + new Date().toLocaleTimeString();
+  } else {
+    dot.classList.add("stale");
+    text.textContent = "Connection lost - retrying...";
+  }
+}
+
+async function refresh() {
+  try {
+    const res = await fetch("api/data", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    renderInfo(data);
+    renderStats(data);
+    renderBoard("board-balance", data.leaderboardBalance, e => formatCopper(e.balanceCopper));
+    renderBoard("board-claims", data.leaderboardClaims, e => String(e.claimedChunks));
+    setStatus(true);
+  } catch (e) {
+    setStatus(false);
+  }
+}
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>

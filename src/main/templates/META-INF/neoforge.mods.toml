@@ -7,7 +7,7 @@ modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
 authors="malik"
-description='''Connects Lightman's Currency with FTB Chunks + FTB Teams, or Open Parties and Claims, for paid claims, upkeep, and protection management.'''
+description='''Connects Lightman's Currency with FTB Chunks + FTB Teams, or Open Parties and Claims, for paid claims, periodic upkeep, and protection management - including a land/build chunk price split, an in-game bank/upkeep dashboard, an optional built-in web server for a live leaderboard and server info page, and (FTB Chunks only) bounties, a chat leaderboard, a one-time pioneer bonus, and zero-dependency FTB Quests hooks.'''
 
 [[dependencies.${mod_id}]]
 modId="neoforge"

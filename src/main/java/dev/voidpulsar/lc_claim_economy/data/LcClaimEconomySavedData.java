@@ -13,8 +13,10 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -23,6 +25,25 @@ public class LcClaimEconomySavedData extends SavedData {
     private static final String DATA_NAME = LcClaimEconomy.MOD_ID + "_team_accounts";
 
     private final Map<UUID, TeamLinkEntry> teamLinks = new HashMap<>();
+    private boolean pioneerClaimGranted = false;
+    private final Map<UUID, Long> playerBounties = new HashMap<>();
+    private final Map<UUID, Long> teamBounties = new HashMap<>();
+    private long nextUpkeepTick = -1L;
+    private long nextOpcUpkeepTick = -1L;
+
+    private static final int MAX_LEDGER_ENTRIES_PER_ACCOUNT = 50;
+    private final Map<UUID, List<LedgerEntry>> ledgers = new HashMap<>();
+    private final Map<String, MarketListing> marketListings = new HashMap<>();
+
+    private long statUpkeepChargedCopper = 0L;
+    private int statUpkeepChargedCount = 0;
+    private int statUpkeepMissedCount = 0;
+    private long statClaimSpendCopper = 0L;
+    private int statClaimCount = 0;
+    private long statUnclaimRefundCopper = 0L;
+    private int statUnclaimCount = 0;
+    private long statMarketVolumeCopper = 0L;
+    private int statMarketSaleCount = 0;
 
     public static LcClaimEconomySavedData get(MinecraftServer server) {
         ServerLevel level = server.overworld();
@@ -32,6 +53,61 @@ public class LcClaimEconomySavedData extends SavedData {
 
     private static LcClaimEconomySavedData load(CompoundTag tag, HolderLookup.Provider lookup) {
         LcClaimEconomySavedData data = new LcClaimEconomySavedData();
+        data.pioneerClaimGranted = tag.getBoolean("PioneerClaimGranted");
+        data.nextUpkeepTick = tag.contains("NextUpkeepTick", Tag.TAG_LONG) ? tag.getLong("NextUpkeepTick") : -1L;
+        data.nextOpcUpkeepTick = tag.contains("NextOpcUpkeepTick", Tag.TAG_LONG) ? tag.getLong("NextOpcUpkeepTick") : -1L;
+        loadBountyMap(tag, "PlayerBounties", data.playerBounties);
+        loadBountyMap(tag, "TeamBounties", data.teamBounties);
+
+        data.statUpkeepChargedCopper = tag.getLong("StatUpkeepChargedCopper");
+        data.statUpkeepChargedCount = tag.getInt("StatUpkeepChargedCount");
+        data.statUpkeepMissedCount = tag.getInt("StatUpkeepMissedCount");
+        data.statClaimSpendCopper = tag.getLong("StatClaimSpendCopper");
+        data.statClaimCount = tag.getInt("StatClaimCount");
+        data.statUnclaimRefundCopper = tag.getLong("StatUnclaimRefundCopper");
+        data.statUnclaimCount = tag.getInt("StatUnclaimCount");
+        data.statMarketVolumeCopper = tag.getLong("StatMarketVolumeCopper");
+        data.statMarketSaleCount = tag.getInt("StatMarketSaleCount");
+
+        ListTag ledgerList = tag.getList("Ledgers", Tag.TAG_COMPOUND);
+        for (int i = 0; i < ledgerList.size(); i++) {
+            CompoundTag accountTag = ledgerList.getCompound(i);
+            UUID accountKey = accountTag.getUUID("AccountId");
+            List<LedgerEntry> entries = new ArrayList<>();
+            ListTag entryList = accountTag.getList("Entries", Tag.TAG_COMPOUND);
+            for (int j = 0; j < entryList.size(); j++) {
+                CompoundTag entryTag = entryList.getCompound(j);
+                try {
+                    LedgerKind kind = LedgerKind.valueOf(entryTag.getString("Kind"));
+                    entries.add(new LedgerEntry(
+                            entryTag.getLong("Timestamp"),
+                            kind,
+                            entryTag.getLong("CopperDelta"),
+                            entryTag.getString("Detail")
+                    ));
+                } catch (IllegalArgumentException ignored) {
+                    // Unknown ledger kind (e.g. saved by a newer/older mod version) - skip it.
+                }
+            }
+            if (!entries.isEmpty()) {
+                data.ledgers.put(accountKey, entries);
+            }
+        }
+
+        ListTag marketList = tag.getList("MarketListings", Tag.TAG_COMPOUND);
+        for (int i = 0; i < marketList.size(); i++) {
+            CompoundTag listingTag = marketList.getCompound(i);
+            String chunkKey = listingTag.getString("ChunkKey");
+            if (chunkKey.isEmpty()) {
+                continue;
+            }
+            data.marketListings.put(chunkKey, new MarketListing(
+                    listingTag.getUUID("SellerTeamId"),
+                    listingTag.getString("SellerName"),
+                    listingTag.getLong("PriceCopper"),
+                    listingTag.getLong("Listed")
+            ));
+        }
         ListTag list = tag.getList("Teams", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
             CompoundTag entryTag = list.getCompound(i);
@@ -106,6 +182,18 @@ public class LcClaimEconomySavedData extends SavedData {
             ));
         }
         return data;
+    }
+
+    private static void loadBountyMap(CompoundTag tag, String key, Map<UUID, Long> target) {
+        ListTag list = tag.getList(key, Tag.TAG_COMPOUND);
+        for (int i = 0; i < list.size(); i++) {
+            CompoundTag entry = list.getCompound(i);
+            long copper = entry.getLong("Copper");
+            if (copper <= 0L) {
+                continue;
+            }
+            target.put(entry.getUUID("Id"), copper);
+        }
     }
 
     private static TeamPendingState loadPendingState(CompoundTag entryTag) {
@@ -185,6 +273,59 @@ public class LcClaimEconomySavedData extends SavedData {
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider lookup) {
+        tag.putBoolean("PioneerClaimGranted", pioneerClaimGranted);
+        if (nextUpkeepTick >= 0L) {
+            tag.putLong("NextUpkeepTick", nextUpkeepTick);
+        }
+        if (nextOpcUpkeepTick >= 0L) {
+            tag.putLong("NextOpcUpkeepTick", nextOpcUpkeepTick);
+        }
+        saveBountyMap(tag, "PlayerBounties", playerBounties);
+        saveBountyMap(tag, "TeamBounties", teamBounties);
+
+        tag.putLong("StatUpkeepChargedCopper", statUpkeepChargedCopper);
+        tag.putInt("StatUpkeepChargedCount", statUpkeepChargedCount);
+        tag.putInt("StatUpkeepMissedCount", statUpkeepMissedCount);
+        tag.putLong("StatClaimSpendCopper", statClaimSpendCopper);
+        tag.putInt("StatClaimCount", statClaimCount);
+        tag.putLong("StatUnclaimRefundCopper", statUnclaimRefundCopper);
+        tag.putInt("StatUnclaimCount", statUnclaimCount);
+        tag.putLong("StatMarketVolumeCopper", statMarketVolumeCopper);
+        tag.putInt("StatMarketSaleCount", statMarketSaleCount);
+
+        ListTag ledgerList = new ListTag();
+        for (Map.Entry<UUID, List<LedgerEntry>> entry : ledgers.entrySet()) {
+            if (entry.getValue().isEmpty()) {
+                continue;
+            }
+            CompoundTag accountTag = new CompoundTag();
+            accountTag.putUUID("AccountId", entry.getKey());
+            ListTag entryList = new ListTag();
+            for (LedgerEntry ledgerEntry : entry.getValue()) {
+                CompoundTag entryTag = new CompoundTag();
+                entryTag.putLong("Timestamp", ledgerEntry.timestamp());
+                entryTag.putString("Kind", ledgerEntry.kind().name());
+                entryTag.putLong("CopperDelta", ledgerEntry.copperDelta());
+                entryTag.putString("Detail", ledgerEntry.detail());
+                entryList.add(entryTag);
+            }
+            accountTag.put("Entries", entryList);
+            ledgerList.add(accountTag);
+        }
+        tag.put("Ledgers", ledgerList);
+
+        ListTag marketList = new ListTag();
+        for (Map.Entry<String, MarketListing> entry : marketListings.entrySet()) {
+            CompoundTag listingTag = new CompoundTag();
+            listingTag.putString("ChunkKey", entry.getKey());
+            listingTag.putUUID("SellerTeamId", entry.getValue().sellerTeamId());
+            listingTag.putString("SellerName", entry.getValue().sellerName());
+            listingTag.putLong("PriceCopper", entry.getValue().priceCopper());
+            listingTag.putLong("Listed", entry.getValue().listedAt());
+            marketList.add(listingTag);
+        }
+        tag.put("MarketListings", marketList);
+
         ListTag list = new ListTag();
         for (TeamLinkEntry entry : teamLinks.values()) {
             CompoundTag entryTag = new CompoundTag();
@@ -246,6 +387,111 @@ public class LcClaimEconomySavedData extends SavedData {
         }
         tag.put("Teams", list);
         return tag;
+    }
+
+    private static void saveBountyMap(CompoundTag tag, String key, Map<UUID, Long> source) {
+        if (source.isEmpty()) {
+            return;
+        }
+        ListTag list = new ListTag();
+        for (Map.Entry<UUID, Long> entry : source.entrySet()) {
+            if (entry.getValue() == null || entry.getValue() <= 0L) {
+                continue;
+            }
+            CompoundTag entryTag = new CompoundTag();
+            entryTag.putUUID("Id", entry.getKey());
+            entryTag.putLong("Copper", entry.getValue());
+            list.add(entryTag);
+        }
+        if (!list.isEmpty()) {
+            tag.put(key, list);
+        }
+    }
+
+    /** Adds to (does not replace) any existing bounty on this player, in copper. */
+    public void addPlayerBounty(UUID victim, long copper) {
+        if (copper <= 0L) {
+            return;
+        }
+        playerBounties.merge(victim, copper, Long::sum);
+        setDirty();
+    }
+
+    /** Adds to (does not replace) any existing bounty on this team, in copper. */
+    public void addTeamBounty(UUID team, long copper) {
+        if (copper <= 0L) {
+            return;
+        }
+        teamBounties.merge(team, copper, Long::sum);
+        setDirty();
+    }
+
+    /** Removes and returns the full bounty amount (in copper) on this player, or 0 if none. */
+    public long takePlayerBounty(UUID victim) {
+        Long copper = playerBounties.remove(victim);
+        if (copper != null && copper > 0L) {
+            setDirty();
+            return copper;
+        }
+        return 0L;
+    }
+
+    /** Removes and returns the full bounty amount (in copper) on this team, or 0 if none. */
+    public long takeTeamBounty(UUID team) {
+        Long copper = teamBounties.remove(team);
+        if (copper != null && copper > 0L) {
+            setDirty();
+            return copper;
+        }
+        return 0L;
+    }
+
+    public Map<UUID, Long> playerBounties() {
+        return Map.copyOf(playerBounties);
+    }
+
+    public Map<UUID, Long> teamBounties() {
+        return Map.copyOf(teamBounties);
+    }
+
+    /**
+     * Marks the server-wide Pioneer Bonus as claimed and returns true, the
+     * one time this is ever called successfully - every call after the
+     * first (on this server, forever) returns false. Callers use this to
+     * gate a one-time reward for whoever claims the very first chunk ever
+     * claimed on the server.
+     */
+    public boolean claimPioneerBonus() {
+        if (pioneerClaimGranted) {
+            return false;
+        }
+        pioneerClaimGranted = true;
+        setDirty();
+        return true;
+    }
+
+    /** Next world-time tick (persisted so it survives server restarts) the FTB upkeep loop should fire at, or -1 if not yet scheduled. */
+    public long getNextUpkeepTick() {
+        return nextUpkeepTick;
+    }
+
+    public void setNextUpkeepTick(long tick) {
+        if (this.nextUpkeepTick != tick) {
+            this.nextUpkeepTick = tick;
+            setDirty();
+        }
+    }
+
+    /** Next world-time tick (persisted so it survives server restarts) the OP&C upkeep loop should fire at, or -1 if not yet scheduled. */
+    public long getNextOpcUpkeepTick() {
+        return nextOpcUpkeepTick;
+    }
+
+    public void setNextOpcUpkeepTick(long tick) {
+        if (this.nextOpcUpkeepTick != tick) {
+            this.nextOpcUpkeepTick = tick;
+            setDirty();
+        }
     }
 
     private static void savePendingState(CompoundTag entryTag, TeamPendingState pendingState) {
@@ -612,6 +858,123 @@ public class LcClaimEconomySavedData extends SavedData {
         }
     }
 
+    /**
+     * Appends a ledger entry (newest first, capped at
+     * {@value #MAX_LEDGER_ENTRIES_PER_ACCOUNT} per account) for either a
+     * player or a team account - whichever UUID the caller already used to
+     * deposit/withdraw the money. Also feeds the matching server-wide
+     * aggregate counter so the web dashboard can show totals without
+     * exposing any one account's history.
+     */
+    public void recordLedger(UUID accountKey, LedgerKind kind, long copperDelta, String detail) {
+        List<LedgerEntry> entries = ledgers.computeIfAbsent(accountKey, id -> new ArrayList<>());
+        entries.add(0, new LedgerEntry(System.currentTimeMillis(), kind, copperDelta, detail));
+        while (entries.size() > MAX_LEDGER_ENTRIES_PER_ACCOUNT) {
+            entries.remove(entries.size() - 1);
+        }
+        setDirty();
+    }
+
+    /** Newest-first ledger entries for this account, capped and read-only. */
+    public List<LedgerEntry> getLedger(UUID accountKey) {
+        return List.copyOf(ledgers.getOrDefault(accountKey, List.of()));
+    }
+
+    public void recordUpkeepCharged(long copper) {
+        statUpkeepChargedCopper += copper;
+        statUpkeepChargedCount++;
+        setDirty();
+    }
+
+    public void recordUpkeepMissed() {
+        statUpkeepMissedCount++;
+        setDirty();
+    }
+
+    public void recordClaimPurchase(long copper) {
+        statClaimSpendCopper += copper;
+        statClaimCount++;
+        setDirty();
+    }
+
+    public void recordUnclaimRefund(long copper) {
+        statUnclaimRefundCopper += copper;
+        statUnclaimCount++;
+        setDirty();
+    }
+
+    public void recordMarketSale(long copper) {
+        statMarketVolumeCopper += copper;
+        statMarketSaleCount++;
+        setDirty();
+    }
+
+    public long getStatUpkeepChargedCopper() {
+        return statUpkeepChargedCopper;
+    }
+
+    public int getStatUpkeepChargedCount() {
+        return statUpkeepChargedCount;
+    }
+
+    public int getStatUpkeepMissedCount() {
+        return statUpkeepMissedCount;
+    }
+
+    public long getStatClaimSpendCopper() {
+        return statClaimSpendCopper;
+    }
+
+    public int getStatClaimCount() {
+        return statClaimCount;
+    }
+
+    public long getStatUnclaimRefundCopper() {
+        return statUnclaimRefundCopper;
+    }
+
+    public int getStatUnclaimCount() {
+        return statUnclaimCount;
+    }
+
+    public long getStatMarketVolumeCopper() {
+        return statMarketVolumeCopper;
+    }
+
+    public int getStatMarketSaleCount() {
+        return statMarketSaleCount;
+    }
+
+    /** Lists a claimed chunk for sale on the public marketplace, replacing any existing listing for it. */
+    public void setMarketListing(String chunkKey, MarketListing listing) {
+        marketListings.put(chunkKey, listing);
+        setDirty();
+    }
+
+    @Nullable
+    public MarketListing getMarketListing(String chunkKey) {
+        return marketListings.get(chunkKey);
+    }
+
+    /** Removes a listing (sold, cancelled, or the chunk was unclaimed/lost). Returns false if none existed. */
+    public boolean removeMarketListing(String chunkKey) {
+        boolean removed = marketListings.remove(chunkKey) != null;
+        if (removed) {
+            setDirty();
+        }
+        return removed;
+    }
+
+    public Map<String, MarketListing> getAllMarketListings() {
+        return Map.copyOf(marketListings);
+    }
+
+    public List<MarketListing> getMarketListingsBySeller(UUID sellerTeamId) {
+        return marketListings.values().stream()
+                .filter(listing -> listing.sellerTeamId().equals(sellerTeamId))
+                .toList();
+    }
+
     public int countIncomingWars(UUID targetTeamId) {
         int count = 0;
         for (TeamLinkEntry entry : teamLinks.values()) {
@@ -664,5 +1027,28 @@ public class LcClaimEconomySavedData extends SavedData {
         TeamLinkEntry withChunkAllPlayerPermissions(Map<String, Integer> permissions) {
             return new TeamLinkEntry(ftbTeamId, lcTeamId, legacyAccount, protectionLocked, pendingState, landChunks, warTargets, chunkUserPermissions, permissions);
         }
+    }
+
+    public enum LedgerKind {
+        CLAIM_PURCHASE,
+        UNCLAIM_REFUND,
+        PIONEER_BONUS,
+        UPKEEP_CHARGE,
+        UPKEEP_MISSED,
+        MARKET_SALE,
+        MARKET_PURCHASE
+    }
+
+    /**
+     * One economy event on a player or team account's history. {@code
+     * copperDelta} is signed (negative for money leaving the account,
+     * positive for money arriving) and zero for a no-money event like
+     * {@link LedgerKind#UPKEEP_MISSED}.
+     */
+    public record LedgerEntry(long timestamp, LedgerKind kind, long copperDelta, String detail) {
+    }
+
+    /** A claimed chunk currently listed for sale on the public marketplace. */
+    public record MarketListing(UUID sellerTeamId, String sellerName, long priceCopper, long listedAt) {
     }
 }

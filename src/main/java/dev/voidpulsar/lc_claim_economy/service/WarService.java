@@ -550,6 +550,8 @@ public final class WarService {
         }
 
         savedData.setPendingState(selfId, pendingState.withPendingWarDeclare(targetId));
+        dev.voidpulsar.lc_claim_economy.integration.quest.QuestAdvancements.grant(
+                player, dev.voidpulsar.lc_claim_economy.integration.quest.QuestAdvancements.warDeclared());
         return Component.translatable("message.lc_claim_economy.war_declare_pending", displayName(target));
     }
 

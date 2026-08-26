@@ -37,6 +37,11 @@ public final class LcClaimEconomyConfig {
         public final ModConfigSpec.ConfigValue<List<? extends String>> protectionDismantleOrderLand;
         public final ModConfigSpec.BooleanValue debugTestTeamCommands;
         public final ModConfigSpec.BooleanValue disableCoinMint;
+        public final ModConfigSpec.BooleanValue webEnabled;
+        public final ModConfigSpec.IntValue webPort;
+        public final ModConfigSpec.ConfigValue<String> webBindAddress;
+        public final ModConfigSpec.IntValue webLeaderboardSize;
+        public final ModConfigSpec.LongValue pioneerBonusAmount;
 
         Server(ModConfigSpec.Builder builder) {
             builder.comment("Lightman's Currency: FTB Claim Economy server configuration").push("general");
@@ -149,6 +154,37 @@ public final class LcClaimEconomyConfig {
             debugTestTeamCommands = builder
                     .comment("Allow /lc_claim_economy seed_test_teams, clear_test_teams, and count_test_teams. Keep disabled on production servers.")
                     .define("debugTestTeamCommands", false);
+
+            builder.pop();
+            builder.comment("Optional built-in web server for a live leaderboard/info page. Off by default.").push("web");
+
+            webEnabled = builder
+                    .comment("If true, starts a small built-in HTTP server serving a live leaderboard and server info page. "
+                            + "Read-only, no login required, no data can be modified through it. Anyone who can reach the "
+                            + "configured port/address can view it, including player names, chunk counts, and account balances - "
+                            + "keep the port firewalled/off if that's sensitive on your server.")
+                    .define("webEnabled", false);
+
+            webPort = builder
+                    .comment("Port the built-in web server listens on, if webEnabled is true.")
+                    .defineInRange("webPort", 8123, 1, 65535);
+
+            webBindAddress = builder
+                    .comment("Address the built-in web server binds to. \"0.0.0.0\" listens on all network interfaces "
+                            + "(reachable from other machines); \"127.0.0.1\" restricts it to the local machine only "
+                            + "(e.g. to sit behind your own reverse proxy).")
+                    .define("webBindAddress", "0.0.0.0");
+
+            webLeaderboardSize = builder
+                    .comment("Maximum number of entries shown per leaderboard (balance, claimed chunks) on the web page.")
+                    .defineInRange("webLeaderboardSize", 10, 1, 100);
+
+            builder.pop();
+            builder.comment("Server flavor: one-time bonus for claiming first (FTB Chunks only)").push("flavor");
+
+            pioneerBonusAmount = builder
+                    .comment("One-time reward, in copper units, paid to whichever team claims the very first chunk on this server. Default: 5 diamond coins (50000 copper). Set to 0 to disable.")
+                    .defineInRange("pioneerBonusAmount", 50_000L, 0L, Long.MAX_VALUE);
 
             builder.pop();
         }

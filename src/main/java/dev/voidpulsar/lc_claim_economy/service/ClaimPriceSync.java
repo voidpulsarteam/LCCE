@@ -4,13 +4,22 @@ import dev.ftb.mods.ftbchunks.api.FTBChunksAPI;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.voidpulsar.lc_claim_economy.bank.BankAccountHelper;
+import dev.voidpulsar.lc_claim_economy.compat.ModCompat;
 import dev.voidpulsar.lc_claim_economy.config.LcClaimEconomyConfig;
 import dev.voidpulsar.lc_claim_economy.network.SyncClaimPricesPayload;
-import dev.voidpulsar.lc_claim_economy.service.WarService;
+import dev.voidpulsar.lc_claim_economy.opc.OpcDashboardSync;
 import io.github.lightman314.lightmanscurrency.api.money.bank.IBankAccount;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+/**
+ * Note: this class's own method signatures/fields must never reference any
+ * {@code dev.ftb.mods.*} or {@code xaero.pac.*} type - both are optional
+ * dependencies (see {@code ModCompat}), and this class is loaded
+ * unconditionally regardless of which claim mod (if either) is installed.
+ * The actual FTB/OP&C-specific lookups below are guarded behind
+ * {@code ModCompat} checks before the corresponding type is ever touched.
+ */
 public final class ClaimPriceSync {
     private ClaimPriceSync() {
     }
@@ -25,7 +34,7 @@ public final class ClaimPriceSync {
         String balanceText = "";
         int claimedChunks = 0;
 
-        if (FTBTeamsAPI.api().isManagerLoaded()) {
+        if (ModCompat.isFtbAvailable() && FTBTeamsAPI.api().isManagerLoaded()) {
             Team team = FTBTeamsAPI.api().getManager().getTeamForPlayer(player).orElse(null);
             if (team != null) {
                 BankAccountHelper.ensurePartyAccountExists(player.server, team);
@@ -48,6 +57,12 @@ public final class ClaimPriceSync {
                     claimedChunks = FTBChunksAPI.api().getManager().getOrCreateData(team).getClaimedChunks().size();
                 }
             }
+        } else if (ModCompat.isOpcAvailable()) {
+            OpcDashboardSync.Balance balance = OpcDashboardSync.resolve(player);
+            balanceSynced = balance.synced();
+            balanceEmpty = balance.empty();
+            balanceText = balance.text();
+            claimedChunks = balance.claimedChunks();
         }
 
         return new SyncClaimPricesPayload(
@@ -66,7 +81,7 @@ public final class ClaimPriceSync {
                 LcClaimEconomyConfig.SERVER.blockEditProtectionPrice.get(),
                 LcClaimEconomyConfig.SERVER.entityInteractProtectionPrice.get(),
                 ProtectionPricing.landChunkGroupSize(),
-                WarService.isEnabled()
+                ModCompat.isFtbAvailable() && WarService.isEnabled()
         );
     }
 }

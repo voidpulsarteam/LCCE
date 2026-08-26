@@ -14,6 +14,7 @@ import dev.voidpulsar.lc_claim_economy.util.MoneyUtil;
 import io.github.lightman314.lightmanscurrency.api.money.bank.IBankAccount;
 import io.github.lightman314.lightmanscurrency.api.money.value.MoneyValue;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -91,15 +92,25 @@ public final class UpkeepSettlementService {
             }
 
             if (!cost.isEmpty() && !account.getMoneyStorage().containsValue(cost)) {
+                boolean alreadyFrozen = savedData.isProtectionLocked(teamId);
                 savedData.setPendingState(teamId, pendingState);
                 savedData.setProtectionLocked(teamId, true);
                 ProtectionService.notifyTeam(server, team, "message.lc_claim_economy.upkeep_unpaid_frozen");
                 syncState(server, team);
+                savedData.recordUpkeepMissed();
+                if (!alreadyFrozen) {
+                    // Log this once, on the transition into frozen - not every period a
+                    // still-frozen team keeps failing to pay, which would just spam its ledger.
+                    savedData.recordLedger(teamId, LcClaimEconomySavedData.LedgerKind.UPKEEP_MISSED, 0L, "message.lc_claim_economy.ledger.upkeep_missed");
+                }
                 return new SettlementResult(false, MoneyValue.empty(), pendingState, forceLoadCount(team), List.copyOf(suspended), warsSuspended[0], List.copyOf(restored), List.copyOf(restoredWarNames), List.copyOf(unaffordable));
             }
 
             if (!cost.isEmpty()) {
                 account.withdrawMoney(cost);
+                long costCopper = cost.getCoreValue();
+                savedData.recordUpkeepCharged(costCopper);
+                savedData.recordLedger(teamId, LcClaimEconomySavedData.LedgerKind.UPKEEP_CHARGE, -costCopper, "message.lc_claim_economy.ledger.upkeep_charge");
             }
             savedData.setPendingState(teamId, pendingState);
             savedData.setProtectionLocked(teamId, false);
@@ -122,6 +133,10 @@ public final class UpkeepSettlementService {
         for (UUID targetId : new HashSet<>(pendingState.pendingWarEnds())) {
             if (savedData.setWarTarget(teamId, targetId, false)) {
                 partners.add(targetId);
+                for (ServerPlayer member : team.getOnlineMembers()) {
+                    dev.voidpulsar.lc_claim_economy.integration.quest.QuestAdvancements.grant(
+                            member, dev.voidpulsar.lc_claim_economy.integration.quest.QuestAdvancements.warEnded());
+                }
             }
             updated = updated.withoutPendingWarEnd(targetId);
         }

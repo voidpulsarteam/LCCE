@@ -2,22 +2,20 @@ package dev.voidpulsar.lc_claim_economy.opc;
 
 import dev.voidpulsar.lc_claim_economy.LcClaimEconomy;
 import dev.voidpulsar.lc_claim_economy.config.LcClaimEconomyConfig;
-import dev.voidpulsar.lc_claim_economy.teams.OpcPartySyncService;
+import dev.voidpulsar.lc_claim_economy.data.LcClaimEconomySavedData;
+import dev.voidpulsar.lc_claim_economy.service.FreeChunkAllowance;
 import dev.voidpulsar.lc_claim_economy.util.MoneyUtil;
 import io.github.lightman314.lightmanscurrency.api.money.bank.IBankAccount;
-import io.github.lightman314.lightmanscurrency.api.money.bank.reference.builtin.PlayerBankReference;
 import io.github.lightman314.lightmanscurrency.api.money.value.MoneyValue;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import xaero.pac.common.claims.player.api.IPlayerChunkClaimAPI;
 import xaero.pac.common.claims.player.api.IPlayerClaimInfoAPI;
 import xaero.pac.common.claims.tracker.api.IClaimsManagerListenerAPI;
 import xaero.pac.common.server.api.OpenPACServerAPI;
 import xaero.pac.common.server.claims.api.IServerClaimsManagerAPI;
-import xaero.pac.common.server.parties.party.api.IServerPartyAPI;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -41,9 +39,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * was added, and that never change afterward, are not retroactively
  * charged.
  * <p>
- * This first pass does not implement protection upkeep, wars, or the
- * land/build chunk split for OP&C claims - only the base claim price and
- * unclaim refund.
+ * Handles the base claim price and unclaim refund (including clearing the
+ * land/build chunk type on unclaim - see {@code LcClaimEconomySavedData}).
+ * Periodic protection (force-load + land/build) upkeep billing is handled
+ * separately by {@link OpcUpkeepService}. OP&C claims never participate in
+ * wars - OP&C has no invasion/overclaim concept for that to map onto, and
+ * it isn't planned.
  */
 public final class OpcClaimEconomyListener implements IClaimsManagerListenerAPI {
     private final Map<String, UUID> knownOwners = new ConcurrentHashMap<>();
@@ -74,6 +75,7 @@ public final class OpcClaimEconomyListener implements IClaimsManagerListenerAPI 
         if (claim == null) {
             if (previousOwner != null) {
                 knownOwners.remove(key);
+                LcClaimEconomySavedData.get(server).clearLandChunk(key);
                 handleUnclaim(server, previousOwner);
             }
             return;
@@ -131,16 +133,30 @@ public final class OpcClaimEconomyListener implements IClaimsManagerListenerAPI 
         }
 
         account.withdrawMoney(price);
+        LcClaimEconomySavedData savedData = LcClaimEconomySavedData.get(server);
+        savedData.recordClaimPurchase(LcClaimEconomyConfig.SERVER.claimPrice.get());
+        savedData.recordLedger(owner, LcClaimEconomySavedData.LedgerKind.CLAIM_PURCHASE,
+                -LcClaimEconomyConfig.SERVER.claimPrice.get(), "message.lc_claim_economy.ledger.claim_purchase");
     }
 
     private void handleUnclaim(MinecraftServer server, UUID owner) {
+        IServerClaimsManagerAPI claimsManager = OpenPACServerAPI.get(server).getServerClaimsManager();
+
+        // onChunkChange already reflects the claims manager's post-unclaim state (see
+        // handleClaim's symmetric claimCountAfter), so +1 reconstructs the count the
+        // owner held right before this particular chunk was removed.
+        int claimCountBeforeUnclaim = claimCountFor(claimsManager, owner) + 1;
+        if (!FreeChunkAllowance.shouldRefundOnUnclaim(claimCountBeforeUnclaim)) {
+            // This chunk was within the free allowance and was never paid for.
+            return;
+        }
+
         double refundRatio = LcClaimEconomyConfig.SERVER.unclaimRefundRatio.get();
         long refundAmount = Math.round(LcClaimEconomyConfig.SERVER.claimPrice.get() * refundRatio);
         if (refundAmount <= 0) {
             return;
         }
 
-        IServerClaimsManagerAPI claimsManager = OpenPACServerAPI.get(server).getServerClaimsManager();
         boolean partyOwned = isPartyOwned(claimsManager, owner);
         IBankAccount account = resolveAccount(server, claimsManager, owner, partyOwned);
         if (account == null) {
@@ -148,6 +164,9 @@ public final class OpcClaimEconomyListener implements IClaimsManagerListenerAPI 
         }
 
         account.depositMoney(MoneyUtil.fromCopper(refundAmount));
+        LcClaimEconomySavedData savedData = LcClaimEconomySavedData.get(server);
+        savedData.recordUnclaimRefund(refundAmount);
+        savedData.recordLedger(owner, LcClaimEconomySavedData.LedgerKind.UNCLAIM_REFUND, refundAmount, "message.lc_claim_economy.ledger.unclaim_refund");
     }
 
     private static boolean isPartyOwned(IServerClaimsManagerAPI claimsManager, UUID owner) {
@@ -167,28 +186,10 @@ public final class OpcClaimEconomyListener implements IClaimsManagerListenerAPI 
             UUID owner,
             boolean partyOwned
     ) {
-        if (!partyOwned) {
-            return PlayerBankReference.of(owner).get();
-        }
-        IServerPartyAPI party = OpenPACServerAPI.get(server).getPartyManager().getPartyById(owner);
-        if (party == null) {
-            return null;
-        }
-        return OpcPartySyncService.getBankAccount(server, party);
+        return OpcAccountResolver.resolveAccount(server, owner, partyOwned);
     }
 
     private static void notify(MinecraftServer server, UUID owner, boolean partyOwned, Component message) {
-        if (!partyOwned) {
-            ServerPlayer player = server.getPlayerList().getPlayer(owner);
-            if (player != null) {
-                player.sendSystemMessage(message);
-            }
-            return;
-        }
-        IServerPartyAPI party = OpenPACServerAPI.get(server).getPartyManager().getPartyById(owner);
-        if (party == null) {
-            return;
-        }
-        party.getOnlineMemberStream().forEach(player -> player.sendSystemMessage(message));
+        OpcAccountResolver.notify(server, owner, partyOwned, message);
     }
 }

@@ -16,28 +16,30 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 public class UpkeepService {
-    private long nextUpkeepTick = -1L;
 
     @SubscribeEvent
     public void onServerTick(ServerTickEvent.Post event) {
         MinecraftServer server = event.getServer();
         long periodTicks = LcClaimEconomyConfig.SERVER.upkeepPeriodMinutes.get() * 60L * 20L;
+        long gameTime = server.overworld().getGameTime();
+        LcClaimEconomySavedData savedData = LcClaimEconomySavedData.get(server);
+        long nextUpkeepTick = savedData.getNextUpkeepTick();
 
         if (nextUpkeepTick < 0L) {
-            nextUpkeepTick = server.getTickCount() + periodTicks;
+            savedData.setNextUpkeepTick(gameTime + periodTicks);
             return;
         }
 
         if (server.getPlayerList().getPlayerCount() <= 0) {
-            nextUpkeepTick++;
+            savedData.setNextUpkeepTick(nextUpkeepTick + 1);
             return;
         }
 
-        if (server.getTickCount() < nextUpkeepTick) {
+        if (gameTime < nextUpkeepTick) {
             return;
         }
 
-        nextUpkeepTick = server.getTickCount() + periodTicks;
+        savedData.setNextUpkeepTick(gameTime + periodTicks);
 
         if (!FTBTeamsAPI.api().isManagerLoaded() || !FTBChunksAPI.api().isManagerLoaded()) {
             return;

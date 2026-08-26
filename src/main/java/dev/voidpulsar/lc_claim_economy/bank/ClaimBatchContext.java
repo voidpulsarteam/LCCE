@@ -2,6 +2,7 @@ package dev.voidpulsar.lc_claim_economy.bank;
 
 import dev.ftb.mods.ftbchunks.net.RequestChunkChangePacket;
 import dev.voidpulsar.lc_claim_economy.config.LcClaimEconomyConfig;
+import dev.voidpulsar.lc_claim_economy.data.LcClaimEconomySavedData;
 import dev.voidpulsar.lc_claim_economy.service.ClaimPriceSync;
 import dev.voidpulsar.lc_claim_economy.util.MoneyMessageUtil;
 import dev.voidpulsar.lc_claim_economy.util.MoneyUtil;
@@ -15,6 +16,7 @@ import java.util.UUID;
 public final class ClaimBatchContext {
     private static final ThreadLocal<Boolean> VALIDATING = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Boolean> SUPPRESS_NOTIFICATIONS = ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Boolean> SUPPRESS_ECONOMY = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<UUID> PERSONAL_REFUND_PLAYER = new ThreadLocal<>();
     private static final ThreadLocal<BatchState> EXECUTING = new ThreadLocal<>();
 
@@ -47,6 +49,28 @@ public final class ClaimBatchContext {
             action.run();
         } finally {
             SUPPRESS_NOTIFICATIONS.remove();
+        }
+    }
+
+    public static boolean isEconomySuppressed() {
+        return SUPPRESS_ECONOMY.get();
+    }
+
+    /**
+     * Runs a raw claim/unclaim pair (e.g. {@link dev.voidpulsar.lc_claim_economy.service.MarketService}
+     * moving a chunk from seller to buyer) without {@link dev.voidpulsar.lc_claim_economy.handler.ChunkClaimHandler}
+     * charging the claim price or paying an unclaim refund - the caller
+     * already settled payment itself - and without the normal claim/unclaim
+     * chat spam, since the caller sends its own messages.
+     */
+    public static void runAsInternalTransfer(Runnable action) {
+        SUPPRESS_NOTIFICATIONS.set(true);
+        SUPPRESS_ECONOMY.set(true);
+        try {
+            action.run();
+        } finally {
+            SUPPRESS_NOTIFICATIONS.remove();
+            SUPPRESS_ECONOMY.remove();
         }
     }
 
@@ -137,10 +161,26 @@ public final class ClaimBatchContext {
 
             if (state.operation == RequestChunkChangePacket.ChunkChangeOp.UNCLAIM && state.unclaimCount > 0) {
                 sendUnclaimSummary(player, state);
+                if (state.refundCopper > 0) {
+                    LcClaimEconomySavedData.get(player.server).recordLedger(
+                            BankAccountHelper.ledgerKeyForPlayer(player),
+                            LcClaimEconomySavedData.LedgerKind.UNCLAIM_REFUND,
+                            state.refundCopper,
+                            state.unclaimCount == 1 ? "message.lc_claim_economy.ledger.unclaim_refund" : "message.lc_claim_economy.ledger.unclaim_refund_bulk"
+                    );
+                }
             }
 
             if (state.operation == RequestChunkChangePacket.ChunkChangeOp.CLAIM) {
                 sendClaimSummary(player, state);
+                if (state.claimPaidCopper > 0) {
+                    LcClaimEconomySavedData.get(player.server).recordLedger(
+                            BankAccountHelper.ledgerKeyForPlayer(player),
+                            LcClaimEconomySavedData.LedgerKind.CLAIM_PURCHASE,
+                            -state.claimPaidCopper,
+                            state.claimPaidCount == 1 ? "message.lc_claim_economy.ledger.claim_purchase" : "message.lc_claim_economy.ledger.claim_purchase_bulk"
+                    );
+                }
             }
 
             if (state.uiSyncNeeded) {

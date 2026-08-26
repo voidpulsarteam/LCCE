@@ -1,10 +1,12 @@
 package dev.voidpulsar.lc_claim_economy.network;
 
 import dev.voidpulsar.lc_claim_economy.LcClaimEconomy;
+import dev.voidpulsar.lc_claim_economy.client.BankDashboardUiRefresh;
 import dev.voidpulsar.lc_claim_economy.client.ClientClaimPrices;
 import dev.voidpulsar.lc_claim_economy.client.ClientWarState;
 import dev.voidpulsar.lc_claim_economy.client.PendingStateUiRefresh;
 import dev.voidpulsar.lc_claim_economy.client.TeamUiRefresh;
+import dev.voidpulsar.lc_claim_economy.compat.ModCompat;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -94,8 +96,15 @@ public record SyncClaimPricesPayload(
                     payload.landChunkGroupSize()
             );
             ClientWarState.setWarModuleEnabled(payload.warEnabled());
-            PendingStateUiRefresh.refreshOpenScreens();
-            TeamUiRefresh.refreshMyTeamScreenIfOpen();
+            // ftblibrary/ftbteams client screens - only touch these classes when
+            // that backend is actually installed (ftblibrary is optional; an
+            // OP&C-only client may not have it, and merely referencing these
+            // types would throw NoClassDefFoundError).
+            if (ModCompat.isFtbAvailable()) {
+                PendingStateUiRefresh.refreshOpenScreens();
+                TeamUiRefresh.refreshMyTeamScreenIfOpen();
+            }
+            BankDashboardUiRefresh.refreshIfOpen();
         });
     }
 }

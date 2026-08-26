@@ -14,8 +14,10 @@ import dev.voidpulsar.lc_claim_economy.handler.TeamPropertyHandler;
 import dev.voidpulsar.lc_claim_economy.network.RequestClaimPricesPayload;
 import dev.voidpulsar.lc_claim_economy.network.RequestChunkUserPermsPayload;
 import dev.voidpulsar.lc_claim_economy.network.RequestLandChunksPayload;
+import dev.voidpulsar.lc_claim_economy.network.RequestLedgerPayload;
 import dev.voidpulsar.lc_claim_economy.network.RequestPendingStatePayload;
 import dev.voidpulsar.lc_claim_economy.network.SyncClaimPricesPayload;
+import dev.voidpulsar.lc_claim_economy.network.SyncLedgerPayload;
 import dev.voidpulsar.lc_claim_economy.network.SyncChunkUserPermsPayload;
 import dev.voidpulsar.lc_claim_economy.network.SyncLandChunksPayload;
 import dev.voidpulsar.lc_claim_economy.network.SyncPendingStatePayload;
@@ -67,20 +69,33 @@ public class LcClaimEconomy {
             NeoForge.EVENT_BUS.addListener(UpkeepDetailsCommand::register);
             NeoForge.EVENT_BUS.addListener(UpkeepPriorityCommand::register);
             NeoForge.EVENT_BUS.addListener(SeedTestTeamsCommand::register);
+            NeoForge.EVENT_BUS.addListener(dev.voidpulsar.lc_claim_economy.command.QuestRewardCommand::register);
+            NeoForge.EVENT_BUS.addListener(dev.voidpulsar.lc_claim_economy.command.LeaderboardCommand::register);
+            NeoForge.EVENT_BUS.addListener(dev.voidpulsar.lc_claim_economy.command.BountyCommand::register);
+            NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.handler.BountyKillHandler());
+            NeoForge.EVENT_BUS.addListener(dev.voidpulsar.lc_claim_economy.command.MarketCommand::register);
         } else {
             LOGGER.info("FTB Chunks/Teams not detected - FTB Chunks integration disabled.");
         }
 
         if (dev.voidpulsar.lc_claim_economy.compat.ModCompat.isOpcAvailable()) {
             NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.opc.OpcIntegration());
+            NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.opc.OpcUpkeepService());
+            NeoForge.EVENT_BUS.addListener(dev.voidpulsar.lc_claim_economy.opc.OpcChunkTypeCommand::register);
             LOGGER.info("Open Parties and Claims detected - OP&C claim economy integration enabled.");
         }
 
         NeoForge.EVENT_BUS.addListener(ClearWarsCommand::register);
         NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.handler.CoinMintDisableHandler());
+        NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.web.WebServerLifecycle());
 
         if (FMLEnvironment.dist == Dist.CLIENT && dev.voidpulsar.lc_claim_economy.compat.ModCompat.isFtbAvailable()) {
             new ClientPendingRefreshHandler();
+        }
+
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            modEventBus.addListener(dev.voidpulsar.lc_claim_economy.client.ClientDashboardKeybind::registerMapping);
+            NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.client.ClientDashboardKeybind());
         }
     }
 
@@ -111,10 +126,20 @@ public class LcClaimEconomy {
                 SyncChunkUserPermsPayload.STREAM_CODEC,
                 SyncChunkUserPermsPayload::handleClient
         );
+        registrar.playToClient(
+                SyncLedgerPayload.TYPE,
+                SyncLedgerPayload.STREAM_CODEC,
+                SyncLedgerPayload::handleClient
+        );
         registrar.playToServer(
                 RequestClaimPricesPayload.TYPE,
                 RequestClaimPricesPayload.STREAM_CODEC,
                 RequestClaimPricesPayload::handleServer
+        );
+        registrar.playToServer(
+                RequestLedgerPayload.TYPE,
+                RequestLedgerPayload.STREAM_CODEC,
+                RequestLedgerPayload::handleServer
         );
         registrar.playToServer(
                 RequestPendingStatePayload.TYPE,
