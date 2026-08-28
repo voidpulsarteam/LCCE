@@ -57,6 +57,3 @@ For anything in §3 — forks, redistribution, modified copies, or any other use
 
 The copyright holder may update these terms for future versions of the mod. Changes apply going forward and don't retroactively revoke permissions already granted in writing for a specific past use.
 
----
-
-This matches `mod_license="All Rights Reserved"` in [`neoforge.mods.toml`](src/main/templates/META-INF/neoforge.mods.toml). It's a plain-language license drafted for this project, not reviewed by a lawyer — treat it as the project's stated intent rather than a substitute for legal advice if you need one for a specific situation.
