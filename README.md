@@ -97,7 +97,7 @@ The square mod icon (512×512) doubles as the CurseForge/Modrinth listing icon �
 
 ## License
 
-All rights reserved. See the mod's `neoforge.mods.toml` for the authoritative statement; this repository is source-available for transparency and issue tracking, not under an open-source license.
+All rights reserved — see [LICENSE.md](LICENSE.md). This repository is source-available for transparency and issue tracking, not under an open-source license.
 
 ## Credits
 
