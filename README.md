@@ -1,9 +1,13 @@
-# Lightman's Currency: Claim Economy
+<p align="center">
+  <img src="docs/images/banner.png" alt="Lightman's Currency: Claim Economy" width="700">
+</p>
 
-![Minecraft 1.21.1](https://img.shields.io/badge/Minecraft-1.21.1-4f8a3d)
-![NeoForge](https://img.shields.io/badge/Loader-NeoForge-e05d2c)
-![Version](https://img.shields.io/badge/version-4.4.0-c98a1f)
-![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-lightgrey)
+<p align="center">
+<img src="https://img.shields.io/badge/Minecraft-1.21.1-4f8a3d" alt="Minecraft 1.21.1">
+<img src="https://img.shields.io/badge/Loader-NeoForge-e05d2c" alt="NeoForge">
+<img src="https://img.shields.io/badge/version-4.4.0-c98a1f" alt="Version 4.4.0">
+<img src="https://img.shields.io/badge/license-All%20Rights%20Reserved-lightgrey" alt="License: All Rights Reserved">
+</p>
 
 **Claim Economy** turns land claiming into a real, live economy. Claiming a chunk costs money, protecting it costs ongoing upkeep, and — if you're running the full backend — teams can go to war, place bounties on each other, trade claimed land on a player marketplace, and race for a one-time "first claim" bonus. All of it is backed by [Lightman's Currency](https://www.curseforge.com/minecraft/mc-mods/lightmans-currency) bank accounts, so the money is the same money your players already bank, spend, and trade with everywhere else on your server.
 
@@ -82,6 +86,14 @@ Everything beyond this overview lives on the **[wiki](../../wiki)**:
 - [Configuration](../../wiki/Configuration) — every config key, default, and what it does
 - [Commands](../../wiki/Commands) — full command reference
 - [FAQ](../../wiki/FAQ)
+
+## Media
+
+<img src="docs/images/icon.png" alt="Claim Economy mod icon" width="96" align="left">
+
+The square mod icon (512×512) doubles as the CurseForge/Modrinth listing icon — [`docs/images/icon.png`](docs/images/icon.png). The banner above lives at [`docs/images/banner.png`](docs/images/banner.png).
+
+<br clear="left">
 
 ## License
 
