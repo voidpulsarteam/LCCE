@@ -21,7 +21,9 @@ public record SyncWarStatePayload(
         List<WarTeamEntry> incoming,
         List<WarTeamEntry> outgoing,
         List<WarTeamEntry> availableTargets,
-        boolean canManageWar
+        boolean canManageWar,
+        boolean warDeclarationWindowOpen,
+        String warDeclarationWindowDescription
 ) implements CustomPacketPayload {
     public static final Type<SyncWarStatePayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(LcClaimEconomy.MOD_ID, "sync_war_state"));
@@ -44,6 +46,8 @@ public record SyncWarStatePayload(
                     WarTeamEntry.STREAM_CODEC.encode(buffer, entry);
                 }
                 buffer.writeBoolean(payload.canManageWar);
+                buffer.writeBoolean(payload.warDeclarationWindowOpen);
+                buffer.writeUtf(payload.warDeclarationWindowDescription, 256);
             },
             buffer -> {
                 long base = buffer.readVarLong();
@@ -73,7 +77,9 @@ public record SyncWarStatePayload(
                         incomingEntries,
                         outgoingEntries,
                         targets,
-                        buffer.readBoolean()
+                        buffer.readBoolean(),
+                        buffer.readBoolean(),
+                        buffer.readUtf(256)
                 );
             }
     );

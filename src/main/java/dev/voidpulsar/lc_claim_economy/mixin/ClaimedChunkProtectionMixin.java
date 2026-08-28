@@ -2,6 +2,7 @@ package dev.voidpulsar.lc_claim_economy.mixin;
 
 import dev.ftb.mods.ftbchunks.api.ClaimedChunk;
 import dev.voidpulsar.lc_claim_economy.service.LandChunkService;
+import dev.voidpulsar.lc_claim_economy.service.SiegeModeService;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -10,13 +11,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Land chunks can only be protected against block editing/interaction, so
  * explosions and mob griefing are always allowed (unprotected) on them,
- * regardless of the team's build protection settings.
+ * regardless of the team's build protection settings. Explosion protection
+ * is also bypassed on any chunk while its team is at war, if the
+ * {@code siegeModeEnabled} config option is on - see {@link SiegeModeService}.
  */
 @Mixin(targets = "dev.ftb.mods.ftbchunks.data.ClaimedChunkImpl", remap = false)
 public abstract class ClaimedChunkProtectionMixin {
     @Inject(method = "allowExplosions", at = @At("HEAD"), cancellable = true, remap = false)
     private void lcClaimEconomy$landExplosions(CallbackInfoReturnable<Boolean> cir) {
-        if (LandChunkService.isLandChunk((ClaimedChunk) this)) {
+        ClaimedChunk chunk = (ClaimedChunk) this;
+        if (LandChunkService.isLandChunk(chunk) || SiegeModeService.explosionsBypassed(chunk)) {
             cir.setReturnValue(true);
         }
     }

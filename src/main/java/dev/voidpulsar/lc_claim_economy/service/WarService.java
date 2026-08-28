@@ -257,8 +257,48 @@ public final class WarService {
         return WarUpkeepMath.outgoingWarCostCopper(baseUpkeepCopper(server, target));
     }
 
+    /** True if the given team currently has at least one active war, incoming or outgoing. */
+    public static boolean isAtWar(MinecraftServer server, UUID teamId) {
+        return !LcClaimEconomySavedData.get(server).collectWarPartnerIds(teamId).isEmpty();
+    }
+
     public static boolean isWarEligibleTeam(MinecraftServer server, Team team) {
-        return FtbTeamCatalog.isTracked(server, team);
+        if (!FtbTeamCatalog.isTracked(server, team)) {
+            return false;
+        }
+        if (isPeaceful(server, team.getTeamId())) {
+            return false;
+        }
+        return meetsMinClaimThreshold(server, team);
+    }
+
+    /** A team that has opted out of the war system entirely via {@code /lcce war peaceful} - see {@link #setPeaceful}. */
+    public static boolean isPeaceful(MinecraftServer server, UUID teamId) {
+        return LcClaimEconomySavedData.get(server).isPeaceful(teamId);
+    }
+
+    /**
+     * Attempts to set a team's peaceful flag. Fails (returns false) if trying to enable it while
+     * the team has any active war - wars must be ended first, so peaceful mode can't be used as a
+     * mid-siege escape hatch.
+     */
+    public static boolean setPeaceful(MinecraftServer server, UUID teamId, boolean peaceful) {
+        if (peaceful && isAtWar(server, teamId)) {
+            return false;
+        }
+        LcClaimEconomySavedData.get(server).setPeaceful(teamId, peaceful);
+        return true;
+    }
+
+    public static boolean meetsMinClaimThreshold(MinecraftServer server, Team team) {
+        int min = LcClaimEconomyConfig.SERVER.warMinClaimedChunks.get();
+        if (min <= 0) {
+            return true;
+        }
+        if (!FTBChunksAPI.api().isManagerLoaded()) {
+            return false;
+        }
+        return FTBChunksAPI.api().getManager().getOrCreateData(team).getClaimedChunks().size() > min;
     }
 
     public static List<WarTeamView> buildIncomingViews(MinecraftServer server, Team self) {
@@ -526,6 +566,19 @@ public final class WarService {
             return Component.translatable("message.lc_claim_economy.war_self");
         }
         if (!isWarEligibleTeam(server, self) || !isWarEligibleTeam(server, target)) {
+            if (isPeaceful(server, self.getTeamId())) {
+                return Component.translatable("message.lc_claim_economy.war_self_peaceful");
+            }
+            if (isPeaceful(server, target.getTeamId())) {
+                return Component.translatable("message.lc_claim_economy.war_target_peaceful", displayName(target));
+            }
+            int minClaims = LcClaimEconomyConfig.SERVER.warMinClaimedChunks.get();
+            if (!meetsMinClaimThreshold(server, self)) {
+                return Component.translatable("message.lc_claim_economy.war_self_too_small", minClaims);
+            }
+            if (!meetsMinClaimThreshold(server, target)) {
+                return Component.translatable("message.lc_claim_economy.war_target_too_small", displayName(target), minClaims);
+            }
             return Component.translatable("message.lc_claim_economy.war_unavailable");
         }
 
@@ -547,6 +600,10 @@ public final class WarService {
             }
             savedData.setPendingState(selfId, pendingState.withPendingWarEnd(targetId));
             return Component.translatable("message.lc_claim_economy.war_end_pending", displayName(target));
+        }
+
+        if (!WarDeclarationWindow.isOpenNow()) {
+            return Component.translatable("message.lc_claim_economy.war_declare_window_closed", WarDeclarationWindow.describeWindow());
         }
 
         savedData.setPendingState(selfId, pendingState.withPendingWarDeclare(targetId));

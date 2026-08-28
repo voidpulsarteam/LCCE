@@ -31,7 +31,7 @@ import java.util.stream.Stream;
  *     chunk, same as the FTB side.</li>
  *     <li>Protection upkeep: build chunks pay {@link OpcProtectionPricing}'s
  *     build base price per chunk, land chunks (marked via
- *     {@code /lc_claim_economy opc_chunktype land}, see
+ *     {@code /lcce opc_chunktype land}, see
  *     {@link OpcChunkTypeCommand}) pay the land base price once per
  *     {@code landChunkGroupSize} chunks, and the first {@code freeChunks}
  *     chunks are exempt - all mirroring the FTB side's

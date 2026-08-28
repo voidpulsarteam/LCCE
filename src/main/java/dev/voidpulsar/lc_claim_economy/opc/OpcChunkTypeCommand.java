@@ -38,7 +38,7 @@ public final class OpcChunkTypeCommand {
 
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        dispatcher.register(Commands.literal(LcClaimEconomy.MOD_ID)
+        dispatcher.register(Commands.literal(LcClaimEconomy.COMMAND_ROOT)
                 .then(Commands.literal("opc_chunktype")
                         .then(Commands.literal("land").executes(ctx -> setType(ctx, true)))
                         .then(Commands.literal("build").executes(ctx -> setType(ctx, false)))
