@@ -96,19 +96,19 @@ public class WarScreen extends BaseScreen {
         add(infoButton);
 
         incomingSection = new WarSection(
-                Component.translatable("gui.lc_claim_economy.war.incoming_heading"),
+                () -> Component.translatable("gui.lc_claim_economy.war.incoming_heading"),
                 ClientWarState::incoming,
                 SectionMode.INCOMING,
                 Component.translatable("gui.lc_claim_economy.war.empty_incoming").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC)
         );
         outgoingSection = new WarSection(
-                Component.translatable("gui.lc_claim_economy.war.outgoing_heading"),
+                () -> Component.translatable("gui.lc_claim_economy.war.outgoing_heading"),
                 ClientWarState::outgoing,
                 SectionMode.OUTGOING,
                 Component.translatable("gui.lc_claim_economy.war.empty_outgoing").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC)
         );
         declareSection = new WarSection(
-                Component.translatable("gui.lc_claim_economy.war.declare_heading"),
+                WarScreen::declareHeading,
                 ClientWarState::availableTargets,
                 SectionMode.DECLARE,
                 Component.translatable("gui.lc_claim_economy.war.empty_targets").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC)
@@ -168,6 +168,20 @@ public class WarScreen extends BaseScreen {
                 NordColors.SNOW_STORM_0,
                 Theme.CENTERED
         );
+    }
+
+    private static Component declareHeading() {
+        Component base = Component.translatable("gui.lc_claim_economy.war.declare_heading");
+        if (ClientWarState.warDeclarationWindowOpen()) {
+            return base;
+        }
+        return Component.empty()
+                .append(base)
+                .append(Component.literal(" - "))
+                .append(Component.translatable(
+                        "gui.lc_claim_economy.war.declare_heading_closed_suffix",
+                        ClientWarState.warDeclarationWindowDescription()
+                ).withStyle(ChatFormatting.RED));
     }
 
     private enum SectionMode {
@@ -274,6 +288,13 @@ public class WarScreen extends BaseScreen {
             list.add(Component.translatable("gui.lc_claim_economy.war.entry_tooltip.opponent_pending_declare")
                     .withStyle(ChatFormatting.YELLOW));
         }
+        if (mode == SectionMode.DECLARE && !ClientWarState.warDeclarationWindowOpen()) {
+            list.blankLine();
+            list.add(Component.translatable(
+                    "gui.lc_claim_economy.war.entry_tooltip.declare_window_closed",
+                    ClientWarState.warDeclarationWindowDescription()
+            ).withStyle(ChatFormatting.RED));
+        }
         if (mode == SectionMode.OUTGOING) {
             addWarVulnerabilityTooltip(list, entry);
         }
@@ -352,7 +373,7 @@ public class WarScreen extends BaseScreen {
     }
 
     private final class WarSection {
-        private final Component title;
+        private final Supplier<Component> titleSupplier;
         private final Supplier<List<WarTeamEntry>> sourceEntries;
         private final SectionMode mode;
         private final Component emptyMessage;
@@ -362,19 +383,19 @@ public class WarScreen extends BaseScreen {
         private PanelScrollBar scrollBar;
 
         private WarSection(
-                Component title,
+                Supplier<Component> titleSupplier,
                 Supplier<List<WarTeamEntry>> sourceEntries,
                 SectionMode mode,
                 Component emptyMessage
         ) {
-            this.title = title;
+            this.titleSupplier = titleSupplier;
             this.sourceEntries = sourceEntries;
             this.mode = mode;
             this.emptyMessage = emptyMessage;
         }
 
         void addWidgets() {
-            headerBar = new SectionHeaderBar(WarScreen.this, title, this::refreshList);
+            headerBar = new SectionHeaderBar(WarScreen.this, titleSupplier, this::refreshList);
             listPanel = new WarEntryListPanel(WarScreen.this, this::filteredEntries, mode, emptyMessage);
             scrollBar = new WarScrollBar(WarScreen.this, listPanel);
 
@@ -439,13 +460,13 @@ public class WarScreen extends BaseScreen {
     }
 
     private static class SectionHeaderBar extends Panel {
-        private final Component title;
+        private final Supplier<Component> titleSupplier;
         private final Runnable onFilterChanged;
         private TextBox filterBox;
 
-        SectionHeaderBar(BaseScreen screen, Component title, Runnable onFilterChanged) {
+        SectionHeaderBar(BaseScreen screen, Supplier<Component> titleSupplier, Runnable onFilterChanged) {
             super(screen);
-            this.title = title;
+            this.titleSupplier = titleSupplier;
             this.onFilterChanged = onFilterChanged;
             setOnlyRenderWidgetsInside(true);
             setOnlyInteractWithWidgetsInside(true);
@@ -492,7 +513,7 @@ public class WarScreen extends BaseScreen {
             int titleMaxWidth = filterBox == null || filterBox.width <= 0
                     ? w - 4
                     : Math.max(0, filterBox.getX() - 6);
-            Component heading = title.copy().withStyle(ChatFormatting.BOLD);
+            Component heading = titleSupplier.get().copy().withStyle(ChatFormatting.BOLD);
             if (titleMaxWidth > 0 && theme.getStringWidth(heading) > titleMaxWidth) {
                 heading = Component.literal(theme.trimStringToWidth(heading.getString(), titleMaxWidth - 4) + "...");
             }
@@ -652,16 +673,27 @@ public class WarScreen extends BaseScreen {
             }
 
             if (!infoOnly && !entry.isPending() && actionLabel != null && ClientWarState.canManageWar()) {
+                boolean declareWindowClosed = declareAction && !ClientWarState.warDeclarationWindowOpen();
                 add(new NordButton(
                         this,
                         actionLabel,
                         declareAction
-                                ? WarIcons.SWORD
+                                ? (declareWindowClosed ? WarIcons.SWORD.withTint(NordColors.POLAR_NIGHT_3) : WarIcons.SWORD)
                                 : Icons.CANCEL.withTint(NordColors.SNOW_STORM_1)
                 ) {
                     @Override
                     public void onClicked(dev.ftb.mods.ftblibrary.ui.input.MouseButton button) {
                         sendToggleWar();
+                    }
+
+                    @Override
+                    public void addMouseOverText(TooltipList list) {
+                        if (declareWindowClosed) {
+                            list.add(Component.translatable(
+                                    "gui.lc_claim_economy.war.entry_tooltip.declare_window_closed",
+                                    ClientWarState.warDeclarationWindowDescription()
+                            ).withStyle(ChatFormatting.RED));
+                        }
                     }
                 });
             }

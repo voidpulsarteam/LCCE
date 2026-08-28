@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-28T18:54:19.741Z" hostname="VOIDPULSARYT" time="0.048">
+  <properties/>
+  <testcase name="redeem_expiredCode_returnsEmpty()" classname="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" time="0.008"/>
+  <testcase name="redeem_validCode_returnsPlayerId()" classname="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" time="0.003"/>
+  <testcase name="redeem_nullCode_returnsEmpty()" classname="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" time="0.001"/>
+  <testcase name="issue_generatesUniqueCodes()" classname="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" time="0.025"/>
+  <testcase name="redeem_isCaseInsensitiveAndTrimmed()" classname="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" time="0.006"/>
+  <testcase name="redeem_isSingleUse()" classname="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" time="0.001"/>
+  <testcase name="redeem_unknownCode_returnsEmpty()" classname="dev.voidpulsar.lc_claim_economy.web.auth.LoginCodeServiceTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

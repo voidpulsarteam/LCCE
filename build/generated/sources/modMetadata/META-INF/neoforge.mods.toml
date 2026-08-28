@@ -4,7 +4,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="lc_claim_economy"
-version="4.2.0"
+version="4.4.0"
 displayName="Lightman's Currency: Claim Economy"
 authors="malik"
 description='''Connects Lightman's Currency with FTB Chunks + FTB Teams, or Open Parties and Claims, for paid claims, periodic upkeep, and protection management - including a land/build chunk price split, an in-game bank/upkeep dashboard, an optional built-in web server for a live leaderboard and server info page, and (FTB Chunks only) bounties, a chat leaderboard, a one-time pioneer bonus, and zero-dependency FTB Quests hooks.'''
@@ -40,7 +40,7 @@ side="BOTH"
 [[dependencies.lc_claim_economy]]
 modId="ftbchunks"
 type="optional"
-versionRange="[2101.1.20,)"
+versionRange="[2101.1.21,)"
 ordering="NONE"
 side="BOTH"
 

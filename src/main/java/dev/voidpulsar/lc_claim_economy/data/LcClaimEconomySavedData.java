@@ -25,6 +25,8 @@ public class LcClaimEconomySavedData extends SavedData {
     private static final String DATA_NAME = LcClaimEconomy.MOD_ID + "_team_accounts";
 
     private final Map<UUID, TeamLinkEntry> teamLinks = new HashMap<>();
+    private final Set<UUID> peacefulTeams = new HashSet<>();
+    private final Map<UUID, Long> warActiveSinceMillis = new HashMap<>();
     private boolean pioneerClaimGranted = false;
     private final Map<UUID, Long> playerBounties = new HashMap<>();
     private final Map<UUID, Long> teamBounties = new HashMap<>();
@@ -58,6 +60,14 @@ public class LcClaimEconomySavedData extends SavedData {
         data.nextOpcUpkeepTick = tag.contains("NextOpcUpkeepTick", Tag.TAG_LONG) ? tag.getLong("NextOpcUpkeepTick") : -1L;
         loadBountyMap(tag, "PlayerBounties", data.playerBounties);
         loadBountyMap(tag, "TeamBounties", data.teamBounties);
+
+        if (tag.contains("PeacefulTeams", Tag.TAG_LIST)) {
+            ListTag peacefulList = tag.getList("PeacefulTeams", Tag.TAG_INT_ARRAY);
+            for (int i = 0; i < peacefulList.size(); i++) {
+                data.peacefulTeams.add(net.minecraft.nbt.NbtUtils.loadUUID(peacefulList.get(i)));
+            }
+        }
+        loadBountyMap(tag, "WarActiveSince", data.warActiveSinceMillis);
 
         data.statUpkeepChargedCopper = tag.getLong("StatUpkeepChargedCopper");
         data.statUpkeepChargedCount = tag.getInt("StatUpkeepChargedCount");
@@ -282,6 +292,13 @@ public class LcClaimEconomySavedData extends SavedData {
         }
         saveBountyMap(tag, "PlayerBounties", playerBounties);
         saveBountyMap(tag, "TeamBounties", teamBounties);
+
+        if (!peacefulTeams.isEmpty()) {
+            ListTag peacefulList = new ListTag();
+            peacefulTeams.forEach(id -> peacefulList.add(net.minecraft.nbt.NbtUtils.createUUID(id)));
+            tag.put("PeacefulTeams", peacefulList);
+        }
+        saveBountyMap(tag, "WarActiveSince", warActiveSinceMillis);
 
         tag.putLong("StatUpkeepChargedCopper", statUpkeepChargedCopper);
         tag.putInt("StatUpkeepChargedCount", statUpkeepChargedCount);
@@ -795,6 +812,17 @@ public class LcClaimEconomySavedData extends SavedData {
         return linkedIds;
     }
 
+    public boolean isPeaceful(UUID teamId) {
+        return peacefulTeams.contains(teamId);
+    }
+
+    public void setPeaceful(UUID teamId, boolean peaceful) {
+        boolean changed = peaceful ? peacefulTeams.add(teamId) : peacefulTeams.remove(teamId);
+        if (changed) {
+            setDirty();
+        }
+    }
+
     public Set<UUID> getWarTargets(UUID teamId) {
         TeamLinkEntry entry = teamLinks.get(teamId);
         return entry == null ? Set.of() : entry.warTargets();
@@ -816,7 +844,32 @@ public class LcClaimEconomySavedData extends SavedData {
         }
         teamLinks.put(declarerTeamId, entry.withWarTargets(Set.copyOf(updated)));
         setDirty();
+        updateWarActiveSince(declarerTeamId);
+        updateWarActiveSince(targetTeamId);
         return true;
+    }
+
+    /**
+     * Records when a team most recently went from at-peace to at-war (used to gate
+     * {@code siegeModeGraceHours}), and clears it once they return to peace. Edge-triggered on the
+     * 0-to-nonzero and nonzero-to-0 transitions of {@link #collectWarPartnerIds}, so it stays correct
+     * even through {@link dev.voidpulsar.lc_claim_economy.service.WarService}'s add-then-immediately-
+     * remove affordability probe: that probe's add and remove both run through this same method, so a
+     * team already at war sees no transition (timestamp untouched), and a team not at war sees the
+     * timestamp set then immediately cleared again, leaving no lasting trace.
+     */
+    private void updateWarActiveSince(UUID teamId) {
+        boolean atWarNow = !collectWarPartnerIds(teamId).isEmpty();
+        if (atWarNow) {
+            warActiveSinceMillis.putIfAbsent(teamId, System.currentTimeMillis());
+        } else {
+            warActiveSinceMillis.remove(teamId);
+        }
+    }
+
+    /** Epoch millis this team most recently transitioned from at-peace to at-war, or 0 if not currently at war. */
+    public long getWarActiveSince(UUID teamId) {
+        return warActiveSinceMillis.getOrDefault(teamId, 0L);
     }
 
     public Set<UUID> collectWarPartnerIds(UUID teamId) {

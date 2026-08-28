@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * {@code /lc_claim_economy bounty player|team|list}. Placing a bounty
+ * {@code /lcce bounty player|team|list}. Placing a bounty
  * escrows the money immediately (withdrawn from the placer on placement,
  * not on payout), so it's never double-counted and a bounty always has
  * real money behind it. Collection happens in {@link
@@ -40,7 +40,7 @@ public final class BountyCommand {
 
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        dispatcher.register(Commands.literal(LcClaimEconomy.MOD_ID)
+        dispatcher.register(Commands.literal(LcClaimEconomy.COMMAND_ROOT)
                 .then(Commands.literal("bounty")
                         .then(Commands.literal("player")
                                 .then(Commands.argument("target", EntityArgument.player())

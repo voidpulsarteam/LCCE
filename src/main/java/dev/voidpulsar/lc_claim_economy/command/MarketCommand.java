@@ -10,7 +10,7 @@ import net.minecraft.commands.Commands;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /**
- * {@code /lc_claim_economy market sell|cancel|buy|browse} - the chunk a
+ * {@code /lcce market sell|cancel|buy|browse} - the chunk a
  * player is currently standing in is always the target for sell/cancel/buy,
  * so there are no coordinate arguments to get wrong.
  */
@@ -20,7 +20,7 @@ public final class MarketCommand {
 
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        dispatcher.register(Commands.literal(LcClaimEconomy.MOD_ID)
+        dispatcher.register(Commands.literal(LcClaimEconomy.COMMAND_ROOT)
                 .then(Commands.literal("market")
                         .then(Commands.literal("sell")
                                 .then(Commands.argument("price_copper", LongArgumentType.longArg(1L))

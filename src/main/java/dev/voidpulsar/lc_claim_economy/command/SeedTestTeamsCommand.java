@@ -24,7 +24,7 @@ public final class SeedTestTeamsCommand {
 
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        dispatcher.register(Commands.literal(LcClaimEconomy.MOD_ID)
+        dispatcher.register(Commands.literal(LcClaimEconomy.COMMAND_ROOT)
                 .then(Commands.literal("seed_test_teams")
                         .requires(source -> source.hasPermission(2))
                         .executes(context -> seed(context, TestTeamSeedService.DEFAULT_COUNT))

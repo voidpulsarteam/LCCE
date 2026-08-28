@@ -6,24 +6,40 @@
 <title>Claim Economy Leaderboard</title>
 <style>
   :root {
-    --bg: #2E3440;
-    --panel: #3B4252;
-    --panel-alt: #434C5E;
-    --border: #4C566A;
+    --bg: #1B2029;
+    --bg-2: #232A38;
+    --panel: rgba(59, 66, 82, 0.5);
+    --panel-alt: rgba(67, 76, 94, 0.55);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-soft: rgba(255, 255, 255, 0.06);
     --text: #ECEFF4;
     --text-muted: #D8DEE9;
-    --text-dim: #7B88A1;
+    --text-dim: #8892A6;
     --accent: #88C0D0;
+    --accent-deep: #5E81AC;
     --accent-2: #A3BE8C;
     --gold: #EBCB8B;
+    --glow-teal: rgba(136, 192, 208, 0.22);
+    --glow-blue: rgba(94, 129, 172, 0.28);
+    --glow-purple: rgba(180, 142, 173, 0.16);
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0;
     font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    background: var(--bg);
     color: var(--text);
     padding: 24px 16px 48px;
+    font-variant-numeric: tabular-nums;
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(1100px 720px at 12% -8%, var(--glow-purple), transparent 60%),
+      radial-gradient(1000px 760px at 108% 6%, var(--glow-blue), transparent 55%),
+      radial-gradient(900px 900px at 45% 115%, var(--glow-teal), transparent 60%),
+      linear-gradient(165deg, var(--bg) 0%, var(--bg-2) 48%, #1E2432 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
   }
   header {
     max-width: 960px;
@@ -40,6 +56,12 @@
     color: var(--text-dim);
     font-size: 0.9em;
   }
+  #dashboard-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  #dashboard-link a:hover { text-decoration: underline; }
   #status-dot {
     display: inline-block;
     width: 8px;
@@ -62,9 +84,12 @@
   }
   .card {
     background: var(--panel);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px 18px;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px -24px rgba(0, 0, 0, 0.6);
   }
   .card h2 {
     margin: 0 0 12px;
@@ -138,8 +163,9 @@
 </head>
 <body>
 <header>
-  <h1>Claim Economy</h1>
+  <h1 id="site-title"><img id="site-logo" src="" alt="" style="display:none; height:0.85em; vertical-align:-0.1em; border-radius:3px; margin-right:8px;">Claim Economy</h1>
   <p><span id="status-dot"></span><span id="status-text">Connecting...</span></p>
+  <p id="dashboard-link" style="display:none; margin-top:6px;"><a href="dashboard">Open your team dashboard &rarr;</a></p>
 </header>
 <main>
   <section class="card info-panel">
@@ -288,6 +314,33 @@ async function refresh() {
   }
 }
 
+async function loadTheme() {
+  try {
+    const res = await fetch("api/theme", { cache: "no-store" });
+    if (!res.ok) return;
+    const theme = await res.json();
+    if (theme.accentColor) {
+      document.documentElement.style.setProperty("--accent", theme.accentColor);
+    }
+    document.title = theme.siteName + " Leaderboard";
+    document.getElementById("site-title").lastChild.textContent = theme.siteName;
+    if (theme.logoUrl) {
+      const logo = document.getElementById("site-logo");
+      logo.src = theme.logoUrl;
+      logo.style.display = "inline";
+    }
+    if (theme.dashboardEnabled) {
+      document.getElementById("dashboard-link").style.display = "block";
+    }
+    if (theme.customCss) {
+      const style = document.createElement("style");
+      style.textContent = theme.customCss;
+      document.head.appendChild(style);
+    }
+  } catch (e) { /* keep built-in defaults */ }
+}
+
+loadTheme();
 refresh();
 setInterval(refresh, REFRESH_MS);
 </script>

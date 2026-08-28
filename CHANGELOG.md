@@ -2,7 +2,105 @@
 
 All notable changes to this mod are documented here.
 
-## [4.2.0]
+## [4.4.0]
+
+### Changed
+
+- **Command root renamed from `/lc_claim_economy` to `/lcce`.** Every subcommand
+  (`war`, `market`, `bounty`, `leaderboard`, `upkeep_details`, etc.) moves under
+  the new short root; `LcClaimEconomy.MOD_ID` (resource/network namespace,
+  config filename) is unchanged. The in-game clickable upkeep-details link and
+  all doc comments referencing the old command were updated to match.
+
+### Added
+
+- **Authenticated web dashboard** (`webDashboardEnabled`, off by default,
+  requires `webEnabled` and FTB Chunks/Teams - no Open Parties and Claims
+  backend yet) at `/dashboard`, alongside the existing read-only leaderboard:
+  - **Passwordless login**: `/lcce web login` generates a short-lived,
+    single-use code (`LoginCodeService`) that's entered on the dashboard's
+    login page to start a session (`SessionManager`, `HttpOnly` cookie).
+    Nothing is ever stored or transmitted that could be reused if leaked
+    beyond that one short window.
+  - **Land**: view all claimed chunks (position, dimension, land/build,
+    force-load and pending status) with unclaim and force-load/unload actions.
+  - **Protections**: view and toggle all six build protections (PvP,
+    explosions, mob-griefing, block edit/interact, entity interact) with live
+    price and "pending until next period" state - routes through the exact
+    same `TeamPropertyHandler` pricing/queueing path as the in-game GUI.
+  - **Wars**: incoming/outgoing/available lists, declare/end actions, and the
+    declaration-window banner when one's configured and currently closed.
+  - **Team**: roster with rank/online status (view-only - FTB Teams exposes
+    invite/kick/promote only through its own in-game GUI, not any stable API
+    or command this mod could safely drive), plus a peaceful-mode toggle (see
+    below).
+  - Actions that need to act as the player in FTB Chunks/Teams' own APIs
+    (unclaim, force-load, wars) require that player to currently be online;
+    protection and peaceful-mode toggles work regardless.
+  - **Cosmetic customization** (`webTheme` config section): site name, accent
+    color, logo URL, and raw custom CSS, all applied at runtime via a new
+    public `/api/theme` endpoint - used by both the dashboard and the
+    existing leaderboard page, so a server can reskin both without touching
+    mod files. The leaderboard page also gained a link to the dashboard when
+    it's enabled.
+  - Both web pages were restyled to match: a layered gradient background and
+    glass (blurred, translucent) panels replace the old flat Nord fills,
+    while keeping the same underlying Nord palette and layout.
+- **Siege Mode** (`siegeModeEnabled`, off by default). While on, a team that's
+  been at war for longer than `siegeModeGraceHours` (default 12) has its
+  explosion protection bypassed entirely - intended for packs with large-scale
+  explosive weapons (missiles, artillery, nukes), so a declared war can mean a
+  claim is actually able to be damaged rather than staying economically
+  costly but physically untouchable. Deliberately blanket per-team rather
+  than scoped to the specific war opponent, since FTB Chunks' explosion check
+  has no attacker context to scope against. Grace period is measured from a
+  team's first war of the current war-streak and doesn't reset for additional
+  wars while already at war; clears once they have no active wars. PvP and
+  block-edit protection are untouched by this setting.
+- **War participation safeguards for small/solo teams**:
+  - `warMinClaimedChunks` (0 = off, default): a team needs more than this many
+    claimed chunks before it can declare or be targeted by war.
+  - `/lcce war peaceful on|off`: any team's own opt-out of the war system
+    entirely, independent of size. Blocked from enabling while the team has
+    an active war (end it first) so it can't be used as a mid-siege escape
+    hatch. `war peaceful` with no argument reports current status.
+  - Both gates fold into the same `WarService.isWarEligibleTeam` check used
+    everywhere wars are declared, listed, or targeted, so exempt teams simply
+    don't appear as available targets rather than failing after the fact;
+    `WarService.toggleWar` still gives a specific reason (peaceful vs. too
+    small vs. generic) when a declare is rejected.
+
+## [4.3.0]
+
+### Added
+
+- **Configurable war declaration window.** New wars can now be restricted to
+  a recurring weekly window (e.g. "Friday 22:00 UTC to Sunday 22:00 UTC"),
+  matching the request for a Towny SiegeWar-style schedule so players aren't
+  attacked while at school or work:
+  - New `[war]` config options in `lc_claim_economy-server.toml`:
+    `warDeclarationWindowEnabled` (off by default), `warDeclarationWindowStartDay`/
+    `warDeclarationWindowStartHourUtc`, and `warDeclarationWindowEndDay`/
+    `warDeclarationWindowEndHourUtc`. Days are UTC and support windows that
+    wrap past the end of the week (e.g. start `SUNDAY`, end `FRIDAY`).
+  - New pure, unit-tested `WarDeclarationWindow` service does the minute-of-week
+    math; a degenerate config (`start == end`) is treated as always-open so a
+    typo can't accidentally lock every team out of declaring war.
+  - The check gates only the moment a team declares a **brand-new** war
+    (`WarService.toggleWar`). Ending an existing war, cancelling your own
+    pending declare, and the automatic suspend/restore cycle for wars a team
+    can't currently afford are all unaffected and remain available any time -
+    only starting a fresh attack is time-boxed.
+  - Declaring outside the window returns a chat message naming the next
+    allowed window instead of silently failing.
+- **War window state surfaced client-side**, not just enforced server-side:
+  `SyncWarStatePayload` now carries whether the window is currently open and
+  a human-readable description of it. In the War screen's Declare section,
+  the heading shows "closed until ..." in red, each Declare button's sword
+  icon dims, and both the button and its info tooltip explain when the
+  window reopens - so players see this before clicking, not just after.
+
+## [4.2.1]
 
 ### Added
 
@@ -60,102 +158,16 @@ All notable changes to this mod are documented here.
     the free-allowance comparison the wrong way. Fixed by counting from the
     claim manager's own live (uncached) chunk collection instead of the
     per-team cached one.
-
-## [4.1.0]
-
-### Added
-
-- **Merged in the bounty/leaderboard/quest-integration branch** (previously
-  built and released separately as 4.0.0, without OP&C or dashboard/web
-  support). All FTB Chunks-only, consistent with the rest of that branch:
-  - `/lc_claim_economy bounty player|team|list` - place a bounty (in
-    copper) on a player or their team, escrowed immediately on placement.
-    Player bounties pay out to whoever lands the kill; team bounties only
-    pay out if the killer's team is actually at war with the target's, via
-    `BountyKillHandler`.
-  - `/lc_claim_economy leaderboard [land|wealth]` - a chat-based top-10
-    ranking by claimed chunks or bank balance. Complementary to (not a
-    replacement for) the web server's live leaderboard added in 3.9.0 -
-    same underlying data, different access path.
-  - `/lc_claim_economy quest_deposit <amount>` (permission level 2) - lets
-    an FTB Quests Command Reward pay directly into a player's bank account.
-  - **Pioneer Bonus** - a one-time, server-wide reward (`pioneerBonusAmount`
-    config, default 5 diamond coins) for whoever claims the very first
-    chunk ever claimed on the server.
-  - **FTB Quests hooks with zero dependency** - hidden, toast-free internal
-    advancements (`QuestAdvancements`) granted at claim-count milestones
-    (5/10/25/50/100/250/500), on the first-ever claim, on declaring a war,
-    and on a war ending. Any advancement-aware mod, FTB Quests included,
-    can target these as task criteria without this mod needing FTB Quests
-    as a dependency at all.
-
-## [3.9.0]
-
-### Added
-
-- **OP&C protection upkeep.** Open Parties and Claims claims now pay periodic
-  upkeep like FTB Chunks claims do, via a new `OpcUpkeepService`:
-  - Force-load upkeep: `forceLoadUpkeepPrice` per force-loaded chunk per
-    period, same as FTB.
-  - Non-payment now disables the owner's OP&C `FORCELOAD` config option
-    (the closest OP&C equivalent to FTB's "protection locked" state) until
-    they can pay again, and restores it automatically once they can.
-- **OP&C land/build chunk split.** Claimed chunks can now be marked as
-  "land" (cheaper, billed once per group of `landChunkGroupSize` chunks) or
-  "build" (billed individually), the same distinction FTB Chunks claims
-  already had:
-  - New command: `/lc_claim_economy opc_chunktype land|build|status`,
-    applied to whichever claimed chunk the player is standing in. OP&C has
-    no claims screen to hook a UI toggle into the way FTB Chunks does, so
-    this is command-driven and applies immediately rather than being
-    queued to the next upkeep period.
-  - Protection pricing (`OpcProtectionPricing`) maps OP&C's per-owner
-    protection exceptions (mob/explosion/PvP/block-edit/block-interact/
-    entity-interact) onto the same price config FTB claims use: exempting
-    everyone is treated as free, anything more restrictive is billable.
-  - The `freeChunks` allowance now applies to OP&C claims the same way it
-    does for FTB.
-- **Bank/Upkeep Dashboard.** A new in-game screen (`BankDashboardScreen`),
-  opened with a keybind (default **B**, rebindable in Controls), showing
-  account balance, next claim price, claimed/free chunks, upkeep period and
-  force-load price, and all protection prices. Built entirely on vanilla
-  Minecraft GUI widgets rather than ftblibrary, so it works identically
-  whether the server is running FTB Chunks or OP&C (or neither yet).
-- **Optional built-in web server** for a live leaderboard/info page,
-  entirely opt-in and off by default:
-  - New config section (`web`): `webEnabled`, `webPort` (default 8123),
-    `webBindAddress` (default `0.0.0.0`), `webLeaderboardSize` (default 10).
-  - Serves a single dashboard page with a richest-accounts leaderboard,
-    most-claimed-chunks leaderboard, and a general server info panel
-    (claim price, upkeep, all protection prices, backend in use, tracked
-    account count, players online). Auto-refreshes every 10 seconds.
-  - Works against either backend (FTB Chunks or OP&C), same as the rest of
-    the mod's dual-backend design.
-  - Built on the JDK's own `com.sun.net.httpserver` and a small hand-rolled
-    JSON writer - no new external dependencies added to the mod.
-  - Read-only, unauthenticated by design: it exposes no way to modify
-    anything, but does expose player/team names, chunk counts, and account
-    balances to anyone who can reach the configured port. Documented
-    clearly in the config comment; keep it firewalled/off if that's
-    sensitive on your server.
-
-### Fixed
-
-- Fixed a crash: `SyncClaimPricesPayload`'s client handler unconditionally
-  touched ftblibrary/FTB Teams UI classes on every balance sync. Since
-  ftblibrary is an optional dependency, a client connected to an OP&C-only
-  server without ftblibrary installed would throw `NoClassDefFoundError`
-  and disconnect the moment any claim-price data synced. Now gated behind
-  the same FTB-availability check used everywhere else in the mod.
-- `ClaimPriceSync` (balance/claim-price sync to clients) now also populates
-  correctly for OP&C players; previously it only ever populated data when
-  FTB Teams was the active backend, so OP&C clients always saw "not synced"
-  placeholders.
-
-### Changed
-
-- Wars remain FTB Chunks-only by design (not a gap to close) - OP&C has no
-  invasion/overclaim concept for a war system to attach to, and this is
-  documented explicitly in the OP&C integration's own code comments rather
-  than left as an open question.
-
+- **Mod refused to load against any FTB Chunks/OP&C release newer than the
+  exact point version this mod was built against**, even though
+  `neoforge.mods.toml` already declares an open-ended `[X,)` version range
+  for both. `ModCompatibility.requireExactVersion` did a hard string-equality
+  check independent of that declared range, so every routine FTB Chunks or
+  OP&C bugfix release (e.g. 2101.1.20 -> 2101.1.21) broke this mod's loading
+  entirely with an `IllegalStateException` until it was manually re-pinned
+  and republished. Replaced with `requireMinimumVersion`, a proper
+  `DefaultArtifactVersion` comparison matching the toml's own minimum-version
+  intent - Lightman's Currency (a required, API-heavy dependency) still gets
+  an exact-match check, since a version bump there is far more likely to
+  carry an actual breaking change. Bumped the pinned `ftb_chunks_version` to
+  2101.1.21 to match what's actually current.

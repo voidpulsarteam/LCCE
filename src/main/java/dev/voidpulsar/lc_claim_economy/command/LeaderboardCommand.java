@@ -24,7 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * {@code /lc_claim_economy leaderboard [land|wealth]} - a quick, read-only,
+ * {@code /lcce leaderboard [land|wealth]} - a quick, read-only,
  * chat-based ranking. This is separate from (and complementary to) the
  * optional web server's live leaderboard: this command works with zero
  * setup and no open port, the web page is a shareable, always-current view
@@ -38,7 +38,7 @@ public final class LeaderboardCommand {
     }
 
     public static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal(LcClaimEconomy.MOD_ID)
+        event.getDispatcher().register(Commands.literal(LcClaimEconomy.COMMAND_ROOT)
                 .then(Commands.literal("leaderboard")
                         .executes(context -> showLand(context.getSource()))
                         .then(Commands.literal("land").executes(context -> showLand(context.getSource())))

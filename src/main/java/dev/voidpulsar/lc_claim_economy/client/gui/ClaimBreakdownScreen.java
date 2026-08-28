@@ -318,7 +318,7 @@ public class ClaimBreakdownScreen extends BaseScreen {
                 .withStyle(Style.EMPTY
                         .withColor(ChatFormatting.AQUA)
                         .withUnderlined(true)
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/lc_claim_economy upkeep_details"))
+                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/lcce upkeep_details"))
                         .withHoverEvent(new HoverEvent(
                                 HoverEvent.Action.SHOW_TEXT,
                                 Component.translatable("message.lc_claim_economy.upkeep_see_more_hover")

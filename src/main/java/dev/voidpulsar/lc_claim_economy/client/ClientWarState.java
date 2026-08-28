@@ -15,6 +15,8 @@ public final class ClientWarState {
     private static List<WarTeamEntry> availableTargets = List.of();
     private static boolean canManageWar;
     private static boolean warModuleEnabled = true;
+    private static boolean warDeclarationWindowOpen = true;
+    private static String warDeclarationWindowDescription = "";
 
     private ClientWarState() {
     }
@@ -36,6 +38,8 @@ public final class ClientWarState {
         outgoing = List.copyOf(payload.outgoing());
         availableTargets = List.copyOf(payload.availableTargets());
         canManageWar = payload.canManageWar();
+        warDeclarationWindowOpen = payload.warDeclarationWindowOpen();
+        warDeclarationWindowDescription = payload.warDeclarationWindowDescription();
     }
 
     public static long baseUpkeepCopper() {
@@ -72,5 +76,13 @@ public final class ClientWarState {
 
     public static boolean canManageWar() {
         return canManageWar;
+    }
+
+    public static boolean warDeclarationWindowOpen() {
+        return warDeclarationWindowOpen;
+    }
+
+    public static String warDeclarationWindowDescription() {
+        return warDeclarationWindowDescription;
     }
 }

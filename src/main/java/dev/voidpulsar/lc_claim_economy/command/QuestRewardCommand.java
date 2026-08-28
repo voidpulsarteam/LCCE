@@ -16,7 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /**
- * {@code /lc_claim_economy quest_deposit <amount_copper>} - intended to be
+ * {@code /lcce quest_deposit <amount_copper>} - intended to be
  * run from an FTB Quests Command Reward with permission level 2 and "Run
  * as Player" enabled, so quest completions can pay directly into a
  * player's (or their team's) bank account. Gated to permission level 2 so
@@ -30,7 +30,7 @@ public final class QuestRewardCommand {
 
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        dispatcher.register(Commands.literal(LcClaimEconomy.MOD_ID)
+        dispatcher.register(Commands.literal(LcClaimEconomy.COMMAND_ROOT)
                 .then(Commands.literal("quest_deposit")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.argument("amount_copper", LongArgumentType.longArg(1L))

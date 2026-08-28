@@ -46,6 +46,8 @@ import org.slf4j.Logger;
 @Mod(LcClaimEconomy.MOD_ID)
 public class LcClaimEconomy {
     public static final String MOD_ID = "lc_claim_economy";
+    /** Typed command root ({@code /lcce ...}) - kept short-hand and separate from {@link #MOD_ID}, which stays the resource/network namespace. */
+    public static final String COMMAND_ROOT = "lcce";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public LcClaimEconomy(IEventBus modEventBus, ModContainer modContainer) {
@@ -86,6 +88,8 @@ public class LcClaimEconomy {
         }
 
         NeoForge.EVENT_BUS.addListener(ClearWarsCommand::register);
+        NeoForge.EVENT_BUS.addListener(dev.voidpulsar.lc_claim_economy.command.WebLoginCommand::register);
+        NeoForge.EVENT_BUS.addListener(dev.voidpulsar.lc_claim_economy.command.WarPeacefulCommand::register);
         NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.handler.CoinMintDisableHandler());
         NeoForge.EVENT_BUS.register(new dev.voidpulsar.lc_claim_economy.web.WebServerLifecycle());
 
