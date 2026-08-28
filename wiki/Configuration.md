@@ -1,0 +1,94 @@
+# Configuration
+
+The config file is generated on first launch at:
+
+```
+world/serverconfig/lc_claim_economy-server.toml
+```
+
+(or `saves/<world>/serverconfig/lc_claim_economy-server.toml` in single-player). Reload by restarting the server; some values apply immediately, others (protection/war changes) are queued to the next upkeep period as noted in [Features](Features).
+
+## `general`
+
+| Key | Default | Description |
+|---|---|---|
+| `claimPrice` | `10000` | Cost in copper units to claim one chunk (10000 copper = 1 Diamond coin) |
+| `freeChunks` | `0` | First *N* claimed chunks per team/player are free and exempt from protection upkeep |
+| `landChunkGroupSize` | `5` | Land chunks are billed once per this many chunks (rounded up, minimum 1 group when any land chunk is billable). `1` makes land cost the same as build |
+| `unclaimRefundRatio` | `0.8` | Fraction of claim price refunded on unclaim (`0`–`1`) |
+| `forceLoadUpkeepPrice` | `100000` | Upkeep cost per force-loaded chunk per period (100000 copper = 1 Netherite coin) |
+| `upkeepPeriodMinutes` | `60` | How often upkeep is charged, in real-time minutes (`1`–`10080`) |
+| `disableCoinMint` | `false` | Blocks use of Lightman's Currency's Coin Mint block server-wide |
+
+## `protectionPrices`
+
+Added to upkeep per billable chunk.
+
+| Key | Default | Triggers when… |
+|---|---|---|
+| `mobGriefProtectionPrice` | `80` | Allow Mob Griefing = false |
+| `explosionProtectionPrice` | `70` | Allow Explosion Damage = false |
+| `pvpDisablePrice` | `50` | Allow PvP Combat = false |
+| `blockInteractProtectionPrice` | `100` | Block Interact Mode ≠ Public |
+| `blockEditProtectionPrice` | `100` | Block Edit Mode ≠ Public |
+| `entityInteractProtectionPrice` | `100` | Entity Interact Mode ≠ Public |
+
+## `war`
+
+| Key | Default | Description |
+|---|---|---|
+| `warEnabled` | `true` | Enable the war system entirely; when off, war costs are ignored, war actions are blocked, and the war button is hidden client-side |
+| `warOutgoingCostMultiplier` | `2.0` | Flat multiplier `x` — declaring war costs `x × target's base upkeep` per period, regardless of existing war count |
+| `warCostMultiplier` | `1.2` | Incoming war exponent `l` — surcharge is `b × Σ(l^n)` for `n = 0..k-1` over `k` incoming wars |
+| `warDeclarationWindowEnabled` | `false` | Restrict *new* war declarations to a recurring weekly window. Doesn't affect ending a war, cancelling a pending declare, or the automatic suspend/restore of unaffordable wars |
+| `warDeclarationWindowStartDay` | `FRIDAY` | Day the window opens (UTC). One of `MONDAY`…`SUNDAY` |
+| `warDeclarationWindowStartHourUtc` | `22` | Hour (0–23, UTC) the window opens |
+| `warDeclarationWindowEndDay` | `SUNDAY` | Day the window closes (UTC). Can wrap past the end of the week |
+| `warDeclarationWindowEndHourUtc` | `22` | Hour (0–23, UTC) the window closes |
+| `siegeModeEnabled` | `false` | Bypasses explosion protection entirely on any chunk of a team at war longer than `siegeModeGraceHours`. Only removes this mod's own explosion protection — has no effect on a weapon mod's own defenses. PvP and block-edit protection are unaffected |
+| `siegeModeGraceHours` | `12` | Hours between a team's first war of the current streak and siege mode taking effect. `0` = immediate |
+| `warMinClaimedChunks` | `0` | A team needs more claimed chunks than this to declare or be targeted by war. `0` disables the check |
+
+## `protectionDismantle`
+
+Order protections are dropped in when upkeep can't be paid (first = dropped first). Use FTB property id paths without namespace.
+
+| Key | Default order |
+|---|---|
+| `protectionDismantleOrderLand` | `land_block_edit_mode`, `land_block_interact_mode` |
+| `protectionDismantleOrderBuild` | `entity_interact_mode`, `block_edit_mode`, `block_interact_mode`, `allow_mob_griefing`, `allow_explosions`, `allow_pvp` |
+
+## `web`
+
+| Key | Default | Description |
+|---|---|---|
+| `webEnabled` | `false` | Starts the built-in HTTP server (leaderboard + info page). The leaderboard itself is always read-only and unauthenticated |
+| `webPort` | `8123` | Port the server listens on (`1`–`65535`) |
+| `webBindAddress` | `"0.0.0.0"` | Bind address — `0.0.0.0` for all interfaces, `127.0.0.1` for local-only (e.g. behind your own reverse proxy) |
+| `webLeaderboardSize` | `10` | Max entries shown per leaderboard (`1`–`100`) |
+| `webDashboardEnabled` | `false` | Adds the login-gated player dashboard at `/dashboard` (requires `webEnabled`). FTB Chunks/Teams only |
+| `webSessionMinutes` | `720` | How long a dashboard login session stays valid, in minutes (`1`–`43200`) |
+| `webLoginCodeMinutes` | `5` | How long a `/lcce web login` one-time code stays valid before expiring unused, in minutes (`1`–`60`) |
+
+## `webTheme`
+
+Cosmetic only — no functional effect. Shared by both web pages.
+
+| Key | Default | Description |
+|---|---|---|
+| `webSiteName` | `"Claim Economy"` | Site name in the page title and header |
+| `webAccentColor` | `"#88C0D0"` | Accent color (CSS hex) for headings, highlights, and buttons |
+| `webLogoUrl` | `""` | Optional logo image URL next to the site name; loaded directly by each visitor's browser |
+| `webCustomCss` | `""` | Optional raw CSS appended after the built-in stylesheet |
+
+## `flavor`
+
+| Key | Default | Description |
+|---|---|---|
+| `pioneerBonusAmount` | `50000` | One-time reward for the first chunk ever claimed on the server, in copper (50000 = 5 Diamond coins). `0` disables the payout |
+
+## `debug`
+
+| Key | Default | Description |
+|---|---|---|
+| `debugTestTeamCommands` | `false` | Enables `/lcce seed_test_teams`, `clear_test_teams`, `count_test_teams`. Keep off in production |
