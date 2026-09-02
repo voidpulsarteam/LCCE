@@ -48,7 +48,7 @@ See the [Features](../../wiki/Features) wiki page for the full detail on every s
 | Mod | Version |
 |---|---|
 | [Lightman's Currency](https://www.curseforge.com/minecraft/mc-mods/lightmans-currency) | exactly `1.21-2.3.0.5` |
-| **Either:** FTB Chunks + FTB Teams + FTB Library | `2101.1.21` / `2101.1.10` / `2101.1.32` or newer |
+| **Either:** FTB Chunks + FTB Teams + FTB Library | `2101.1.21` / `2101.1.10` / `2101.1.34` or newer |
 | **Or:** Open Parties and Claims | `0.27.5` or newer |
 | NeoForge | `21.1.234` or newer, Minecraft `1.21.1` |
 

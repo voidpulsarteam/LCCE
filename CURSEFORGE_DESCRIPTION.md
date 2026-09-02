@@ -24,7 +24,7 @@ Pick whichever claim mod you already use — if both are installed, FTB takes ov
 | Mod | Version |
 |---|---|
 | [Lightman's Currency](https://www.curseforge.com/minecraft/mc-mods/lightmans-currency) | **exactly** `1.21-2.3.0.5` |
-| [FTB Chunks](https://www.curseforge.com/minecraft/mc-mods/ftb-chunks-neoforge) + [FTB Teams](https://www.curseforge.com/minecraft/mc-mods/ftb-teams-neoforge) + [FTB Library](https://www.curseforge.com/minecraft/mc-mods/ftb-library-neoforge) | `2101.1.21` / `2101.1.10` / `2101.1.32`+ (or OP&C below) |
+| [FTB Chunks](https://www.curseforge.com/minecraft/mc-mods/ftb-chunks-neoforge) + [FTB Teams](https://www.curseforge.com/minecraft/mc-mods/ftb-teams-neoforge) + [FTB Library](https://www.curseforge.com/minecraft/mc-mods/ftb-library-neoforge) | `2101.1.21` / `2101.1.10` / `2101.1.34`+ (or OP&C below) |
 | [Open Parties and Claims](https://www.curseforge.com/minecraft/mc-mods/open-parties-and-claims) | `0.27.5`+ (or FTB above) |
 | NeoForge | `21.1.234`+ |
 

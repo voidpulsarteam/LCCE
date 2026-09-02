@@ -6,17 +6,17 @@
       "request": "launch",
       "name": "Client 1",
       "presentation": {
-        "group": "Mod Development - lightmans",
+        "group": "Mod Development - Lightman-s-Currency-Claim-Economy",
         "order": 0
       },
-      "projectName": "lightmans",
+      "projectName": "Lightman-s-Currency-Claim-Economy",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@C:\\Users\\catbo\\Downloads\\lightmans\\build\\moddev\\clientRunProgramArgs.txt"
+        "@C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\build\\moddev\\clientRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@C:\\Users\\catbo\\Downloads\\lightmans\\build\\moddev\\clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dlc_claim_economy%%C:\\Users\\catbo\\Downloads\\lightmans\\bin\\main"
+        "@C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dlc_claim_economy%%C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "env": {},
@@ -28,17 +28,17 @@
       "request": "launch",
       "name": "Client 2",
       "presentation": {
-        "group": "Mod Development - lightmans",
+        "group": "Mod Development - Lightman-s-Currency-Claim-Economy",
         "order": 1
       },
-      "projectName": "lightmans",
+      "projectName": "Lightman-s-Currency-Claim-Economy",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@C:\\Users\\catbo\\Downloads\\lightmans\\build\\moddev\\client2RunProgramArgs.txt"
+        "@C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\build\\moddev\\client2RunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@C:\\Users\\catbo\\Downloads\\lightmans\\build\\moddev\\client2RunVmArgs.txt",
-        "-Dfml.modFolders\u003dlc_claim_economy%%C:\\Users\\catbo\\Downloads\\lightmans\\bin\\main"
+        "@C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\build\\moddev\\client2RunVmArgs.txt",
+        "-Dfml.modFolders\u003dlc_claim_economy%%C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run-client2",
       "env": {},
@@ -50,17 +50,17 @@
       "request": "launch",
       "name": "Server",
       "presentation": {
-        "group": "Mod Development - lightmans",
+        "group": "Mod Development - Lightman-s-Currency-Claim-Economy",
         "order": 2
       },
-      "projectName": "lightmans",
+      "projectName": "Lightman-s-Currency-Claim-Economy",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@C:\\Users\\catbo\\Downloads\\lightmans\\build\\moddev\\serverRunProgramArgs.txt"
+        "@C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\build\\moddev\\serverRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@C:\\Users\\catbo\\Downloads\\lightmans\\build\\moddev\\serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dlc_claim_economy%%C:\\Users\\catbo\\Downloads\\lightmans\\bin\\main"
+        "@C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dlc_claim_economy%%C:\\Users\\catbo\\OneDrive\\Documentos\\GitHub\\Lightman-s-Currency-Claim-Economy\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "env": {},

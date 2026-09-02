@@ -2,6 +2,23 @@
 
 All notable changes to this mod are documented here.
 
+## [4.4.1]
+
+### Fixed
+
+- **Client crash to desktop when opening FTB Chunks' Settings gear on FTB
+  Library 2101.1.34+.** `EditConfigScreenConfigEntryButtonMixin`'s claim/build
+  visibility lock injected right before a `ConfigValue.getCanEdit()` call
+  inside `EditConfigScreen$ConfigEntryButton`'s constructor; FTB Library
+  2101.1.34 moved that call out of the constructor (into a lazily-evaluated
+  key-text supplier and into `draw`/`onClicked`), so the injection matched
+  nothing and Mixin's `defaultRequire: 1` turned the miss into a hard crash.
+  The lock now applies at the constructor's return instead - `configValue` is
+  always assigned by then, and every consumer of `getCanEdit()` reads it live
+  rather than caching it at construction, so this works unchanged against
+  both the old and new FTB Library layouts. Minimum FTB Library bumped to
+  `2101.1.34` accordingly.
+
 ## [4.4.0]
 
 ### Changed

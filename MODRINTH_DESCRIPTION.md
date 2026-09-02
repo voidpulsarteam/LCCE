@@ -25,7 +25,7 @@ Pick whichever claim mod you already use — if both are installed, FTB takes ov
 | Mod | Version |
 |---|---|
 | [Lightman's Currency](https://modrinth.com/mod/lightmans-currency) | **exactly** `1.21-2.3.0.5` |
-| [FTB Chunks](https://modrinth.com/mod/ftb-chunks) + [FTB Teams](https://modrinth.com/mod/ftb-teams) + [FTB Library](https://modrinth.com/mod/ftb-library) | `2101.1.21` / `2101.1.10` / `2101.1.32`+ (or OP&C below) |
+| [FTB Chunks](https://modrinth.com/mod/ftb-chunks) + [FTB Teams](https://modrinth.com/mod/ftb-teams) + [FTB Library](https://modrinth.com/mod/ftb-library) | `2101.1.21` / `2101.1.10` / `2101.1.34`+ (or OP&C below) |
 | [Open Parties and Claims](https://modrinth.com/mod/open-parties-and-claims) | `0.27.5`+ (or FTB above) |
 | NeoForge | `21.1.234`+ |
 

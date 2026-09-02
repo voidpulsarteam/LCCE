@@ -24,15 +24,17 @@ public class EditConfigScreenConfigEntryButtonMixin {
     @Shadow(remap = false)
     private ConfigValue<?> configValue;
 
-    @Inject(
-            method = "<init>",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Ldev/ftb/mods/ftblibrary/config/ConfigValue;getCanEdit()Z",
-                    shift = At.Shift.BEFORE
-            ),
-            remap = false
-    )
+    /**
+     * Injected at the constructor's return rather than before a specific
+     * {@code getCanEdit()} call: FTB Library 2101.1.34 moved that call out of
+     * {@code <init>} (into a lazy key-text supplier and into {@code draw}/
+     * {@code onClicked}), which broke the old before-the-call injection point.
+     * {@code configValue} is always assigned by the time the constructor
+     * returns, and every consumer of {@code getCanEdit()} reads it live
+     * rather than caching it at construction, so locking it here works
+     * across both the old and new FTB Library layouts.
+     */
+    @Inject(method = "<init>", at = @At("RETURN"), remap = false)
     private void lcClaimEconomy$lockClaimVisibility(CallbackInfo ci) {
         if (ClaimVisibilityService.isClaimVisibilityConfigId(propertyKey(configValue))) {
             configValue.setCanEdit(false);

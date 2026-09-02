@@ -6,7 +6,7 @@
 |---|---|
 | [Lightman's Currency](https://www.curseforge.com/minecraft/mc-mods/lightmans-currency) | **exactly** `1.21-2.3.0.5` |
 | **One of:** | |
-| [FTB Chunks](https://www.curseforge.com/minecraft/mc-mods/ftb-chunks-neoforge) + [FTB Teams](https://www.curseforge.com/minecraft/mc-mods/ftb-teams-neoforge) + [FTB Library](https://www.curseforge.com/minecraft/mc-mods/ftb-library-neoforge) | `2101.1.21` / `2101.1.10` / `2101.1.32` **or newer** |
+| [FTB Chunks](https://www.curseforge.com/minecraft/mc-mods/ftb-chunks-neoforge) + [FTB Teams](https://www.curseforge.com/minecraft/mc-mods/ftb-teams-neoforge) + [FTB Library](https://www.curseforge.com/minecraft/mc-mods/ftb-library-neoforge) | `2101.1.21` / `2101.1.10` / `2101.1.34` **or newer** |
 | [Open Parties and Claims](https://www.curseforge.com/minecraft/mc-mods/open-parties-and-claims) | `0.27.5` **or newer** |
 | NeoForge | `21.1.234` or newer |
 | Minecraft | `1.21.1` |
